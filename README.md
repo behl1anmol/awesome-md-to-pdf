@@ -1,8 +1,19 @@
-# awesome-md-to-pdf
+<p align="center">
+  <img src="docs/assets/images/banner.svg" alt="awesome-md-to-pdf banner" width="720" />
+</p>
 
-> Awesome editorial Markdown → PDF. Convert a directory of Markdown files into beautifully styled PDFs. Ships with a Claude/Anthropic-inspired default design and a parser that lets you swap in any `DESIGN.md` from [getdesign.md](https://getdesign.md) to theme your output on the fly.
+<h1 align="center">awesome-md-to-pdf</h1>
 
-📖 **Full documentation:** [awesome-md-to-pdf docs site](https://behl1anmol.github.io/awesome-md-to-pdf) · 📦 **npm:** [`awesome-md-to-pdf`](https://www.npmjs.com/package/awesome-md-to-pdf)
+<p align="center">
+  <strong>Awesome editorial Markdown &rarr; PDF.</strong><br>
+  Convert a directory of Markdown files into beautifully styled PDFs.<br>
+  Ships with a Claude/Anthropic-inspired default design and a parser that lets you swap in any <code>DESIGN.md</code> from <a href="https://getdesign.md">getdesign.md</a> to theme your output on the fly.
+</p>
+
+<p align="center">
+  <a href="https://<owner>.github.io/awesome-md-to-pdf"><strong>Documentation</strong></a> &nbsp;&middot;&nbsp;
+  <a href="https://www.npmjs.com/package/awesome-md-to-pdf"><strong>npm</strong></a>
+</p>
 
 ## Features
 
@@ -35,7 +46,7 @@ Either install exposes two identical binaries: `awesome-md-to-pdf` (canonical) a
 ### From source
 
 ```bash
-git clone https://github.com/behl1anmol/awesome-md-to-pdf.git
+git clone https://github.com/<owner>/awesome-md-to-pdf.git
 cd awesome-md-to-pdf
 npm install      # installs runtime + TypeScript toolchain
 npm run build    # compiles src/*.ts -> dist/*.js and copies CSS + design assets
