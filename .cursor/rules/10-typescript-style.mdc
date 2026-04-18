@@ -1,0 +1,38 @@
+---
+description: TypeScript style rules specific to src/*.ts.
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# TypeScript style
+
+## Types
+
+- Public shapes are declared with `interface`. Discriminated unions and type aliases use `type`. Example: `ConvertOptions`, `BuildHtmlOptions`, `DesignTokens`, `PaletteTokens` are interfaces; `RenderMode = 'light' | 'dark'` is a type.
+- Never leak `any`. Normalize unknown errors with the project pattern:
+
+```ts
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  logger.error(message);
+}
+```
+
+  Used in [src/cli.ts](src/cli.ts), [src/converter.ts](src/converter.ts), [src/repl.ts](src/repl.ts). Keep it.
+- Prefer readonly input options where practical. Do not mutate caller-supplied options objects (the converter merges defaults via destructuring, not assignment).
+
+## IO
+
+- Async filesystem in hot paths: `import fsp from 'fs/promises'` and `await fsp.readFile/writeFile/mkdir`. The converter pipeline ([src/converter.ts](src/converter.ts)) is entirely async.
+- Sync `fs.readFileSync` is only acceptable for one-shot CSS/asset loads that are cached for the process lifetime (see `readCss` cache in [src/template.ts](src/template.ts) and `resolveMermaidSrc` in [src/mermaid-runtime.ts](src/mermaid-runtime.ts)).
+- When resolving local files for Chromium, always convert to a `file://` URL via `pathToFileURL` (see image rewriter in [src/markdown.ts](src/markdown.ts) and KaTeX font URLs in [src/template.ts](src/template.ts)).
+
+## Concurrency
+
+- The only concurrency primitive is `runPool` in [src/converter.ts](src/converter.ts). Do not introduce `Promise.all` over unbounded input.
+- Long-running shared resources (the Puppeteer `Browser`) are launched once per run via `PdfRenderer.launch()` and closed in a `finally`. New modules that spawn external processes follow the same acquire/release pattern.
+
+## String building for HTML & CSS
+
+- HTML-escape every interpolated value before embedding in a template literal. Use the existing `escapeHtml` helpers in [src/template.ts](src/template.ts) / [src/markdown.ts](src/markdown.ts). Never inline user-controlled strings raw.
+- CSS-escape strings that go into `content: "..."` (see `escapeCssString` in [src/template.ts](src/template.ts) for header/footer tokens).

@@ -1,0 +1,61 @@
+// ---------------------------------------------------------------------------
+// parchment color scheme for Just the Docs
+// Mirrors the Claude/Anthropic-inspired palette from src/themes/tokens.css.
+// Warm-toned throughout, terracotta accent, ring-based depth.
+// ---------------------------------------------------------------------------
+
+@import "./light";
+
+// ---- Canvas & surfaces --------------------------------------------------
+$body-background-color:        #f5f4ed; // Parchment
+$sidebar-color:                #faf9f5; // Ivory
+$search-background-color:      #faf9f5;
+$table-background-color:       #faf9f5;
+$code-background-color:        #faf9f5;
+$feedback-color:               darken(#f5f4ed, 2%);
+
+// ---- Text ---------------------------------------------------------------
+$body-text-color:              #141413; // Near Black
+$body-heading-color:           #141413;
+$body-background-shade:        #e8e6dc; // Warm Sand
+$nav-child-link-color:         #5e5d59; // Olive Gray
+$search-result-preview-color:  #5e5d59;
+$link-color:                   #c96442; // Terracotta
+$btn-primary-color:            #c96442;
+$base-button-color:            #faf9f5;
+
+// ---- Borders / rings ----------------------------------------------------
+$border-color:                 #e8e6dc; // Border Warm
+$table-border-color:           #e8e6dc;
+$search-result-border-color:   #f0eee6;
+
+// ---- Typography ---------------------------------------------------------
+$body-font-family:
+  "Inter",
+  system-ui,
+  -apple-system,
+  "Segoe UI",
+  Arial,
+  sans-serif;
+
+$mono-font-family:
+  "JetBrains Mono",
+  "Fira Code",
+  ui-monospace,
+  "SFMono-Regular",
+  Consolas,
+  Menlo,
+  monospace;
+
+$root-font-size:               16px;
+$body-line-height:             1.6;
+$body-heading-line-height:     1.25;
+
+// Serif stack for headings, matching the editorial vibe of the PDF output.
+$heading-font-family:
+  "Iowan Old Style",
+  "Source Serif Pro",
+  "Source Serif 4",
+  Georgia,
+  "Times New Roman",
+  serif;

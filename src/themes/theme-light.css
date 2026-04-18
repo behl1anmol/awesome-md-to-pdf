@@ -1,0 +1,9 @@
+/*
+ * theme-light.css
+ * Light mode is the default -- tokens.css :root already defines Parchment palette.
+ * This file exists for parity with theme-dark and future light-only tweaks.
+ */
+
+[data-mode="light"] {
+  /* No overrides needed -- :root is already the light palette. */
+}

@@ -1,0 +1,49 @@
+---
+description: CLI flag and slash-command contract between cli.ts, converter.ts, and repl.ts.
+globs: src/cli.ts,src/repl.ts,src/banner.ts,src/progress.ts,src/prompt.ts,src/tty-colors.ts
+alwaysApply: false
+---
+
+# CLI & REPL contract
+
+The CLI, one-shot pipeline, and chat-mode REPL all share the same option surface. Any new user-visible behaviour must appear coherently in all three.
+
+## Adding a CLI flag
+
+Every new flag traverses three declarations:
+
+1. Commander `.option(...)` call in [src/cli.ts](src/cli.ts).
+2. Field on `RawCliOptions` in [src/cli.ts](src/cli.ts), with normalization (see `parseAccent`, `normalizeFormat` patterns).
+3. Field on `ConvertOptions` in [src/converter.ts](src/converter.ts), threaded through the per-file pipeline context.
+
+If the flag is also user-tunable in chat mode, it must additionally:
+
+4. Appear as a field on `Session` in [src/repl.ts](src/repl.ts) and be seeded from `opts.initial`.
+5. Be listed in `COMMAND_META` in [src/repl.ts](src/repl.ts) if it becomes a slash command, and surfaced in `/status`.
+6. Be documented in `README.md` (options table) and in [docs/cli-reference.md](docs/cli-reference.md).
+
+Do NOT ship a flag that only works in one-shot mode and silently disappears in chat (or vice versa).
+
+## Adding a slash command
+
+Every new `/command` must:
+
+1. Have an entry in `COMMAND_META` in [src/repl.ts](src/repl.ts) (name, `argHint`, `description`, `group`).
+2. Have a handler in the `COMMANDS` map in [src/repl.ts](src/repl.ts).
+3. Appear in the `/help` panel (driven by `COMMAND_META`, so adding to the array is enough).
+4. Be surfaced in the ghost-autosuggest dropdown (`filterCommands` uses the same array — no extra wiring needed).
+5. Be documented in [docs/chat-mode.md](docs/chat-mode.md) and in the README's chat-mode section.
+
+## Banner
+
+- The 3D welcome banner is gated behind `shouldShowBanner(opts)` in [src/cli.ts](src/cli.ts). It honours `--no-banner` (commander sets `opts.banner === false`) and the `MDTOPDF_NO_BANNER` env var. Do not remove either.
+- Never call `renderBanner()` / `printBanner()` inside the converter pipeline. Banners are presentation-layer, printed exactly once per process on startup.
+
+## Progress vs ora
+
+- The converter's `canBar` policy — `useProgressBars ?? true) && process.stdout.isTTY && (singleFile || concurrency === 1 || files.length === 1)` — is the single switch. If you add a new output surface, decide whether it needs the bar or the spinner and wire it through `progress?.stage(...)`.
+- The chat REPL forces `concurrency: 1` so the progress bar is always available in interactive mode.
+
+## Non-TTY fallback
+
+- `repl.ts` detects `process.stdin.isTTY && process.stdout.isTTY` and skips the raw-mode UI (dropdown + ghost hint) when either is false. Piped input from smoke tests MUST continue to work; do not add raw-mode-only code paths without a non-TTY fallback.

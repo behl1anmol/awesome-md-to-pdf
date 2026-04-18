@@ -1,0 +1,51 @@
+---
+description: Puppeteer / PDF rendering invariants. Full-bleed contract, readiness dance, navigation policy.
+globs: src/pdf.ts,src/template.ts,src/mermaid-runtime.ts
+alwaysApply: false
+---
+
+# PDF pipeline invariants
+
+These invariants are load-bearing for the full-bleed editorial look and for mermaid / KaTeX / local image loading. Any change that touches them MUST be verified with `scripts/verify-fullbleed.js` in both light and dark mode.
+
+## Full-bleed contract
+
+The `page.pdf(...)` call in `PdfRenderer.render` ([src/pdf.ts](src/pdf.ts)) MUST pass exactly:
+
+```ts
+{
+  format,
+  printBackground: true,
+  preferCSSPageSize: true,
+  displayHeaderFooter: false,
+  margin: { top: 0, right: 0, bottom: 0, left: 0 },
+}
+```
+
+- Chromium's own header/footer strips are disabled. Running headers, footers, and page numbers are rendered via CSS Paged Media `@page` margin boxes emitted by `buildPageChromeCss` in [src/template.ts](src/template.ts). Do not re-enable `displayHeaderFooter` or pass `headerTemplate`/`footerTemplate`.
+- Typographic margins (A4 22mm/20mm/24mm/20mm) live inside the `<main class="page">` padding in [src/themes/base.css](src/themes/base.css). The canvas background is painted by `html, body`.
+
+## Navigation policy
+
+- Render via `page.goto(pathToFileURL(tmpHtml).href, ...)`. Never use `page.setContent(html)`: Chromium treats `about:blank` pages as unable to load sibling `file://` subresources (mermaid.min.js, KaTeX fonts, local images), which silently breaks diagrams and math.
+- The temp HTML file lives in `os.tmpdir()/md-to-pdf-XXXX/` and is deleted in a `finally` block. Keep the delete path resilient to failures (use `.catch(() => undefined)`).
+
+## Readiness dance before `page.pdf`
+
+Always await, in order:
+
+1. `window.__mermaidDone` — the promise exposed by the inline mermaid script in [src/mermaid-runtime.ts](src/mermaid-runtime.ts). Guarantees every `.mermaid` node has rendered.
+2. `document.fonts.ready` — ensures custom fonts have loaded before measurement.
+3. Two `requestAnimationFrame` ticks — lets inline SVG size changes settle before paginating.
+
+Skipping any of these produces blank diagrams, missing glyphs, or content that overflows a page boundary mid-character.
+
+## Browser lifecycle
+
+- The browser is launched once per `convert()` call via `PdfRenderer.launch()` and closed in the outer `finally`. Do not launch-per-file.
+- Launch args: `--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --font-render-hinting=none`. Keep them. Removing `--no-sandbox` breaks CI on Linux; removing font hinting changes typography.
+
+## Error forwarding
+
+- `page.on('pageerror', ...)` and `page.on('requestfailed', ...)` handlers in [src/pdf.ts](src/pdf.ts) write to `console.error`. These are the only sanctioned raw `console` calls in the module (see [20-logger-and-console.mdc](.cursor/rules/20-logger-and-console.mdc)). Do not reroute them through `logger`.
+- `net::ERR_ABORTED` is intentionally filtered out of the `requestfailed` handler — it fires for benign navigation aborts.

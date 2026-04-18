@@ -1,0 +1,140 @@
+// ---------------------------------------------------------------------------
+// Parchment overrides + editorial polish
+// Loaded automatically by Just the Docs after the chosen color scheme.
+// ---------------------------------------------------------------------------
+
+// Serif headings (the scheme already sets $heading-font-family but we force the
+// weight + letter-spacing so things feel literary rather than marketing-y).
+.main-content {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: $heading-font-family;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+
+  h1 {
+    font-size: 2.1rem;
+    border-bottom: 1px solid #e8e6dc;
+    padding-bottom: 0.3em;
+    margin-bottom: 0.8em;
+  }
+
+  h2 {
+    font-size: 1.55rem;
+    margin-top: 2.2em;
+    margin-bottom: 0.6em;
+  }
+
+  // Terracotta underline on hover (matches PDF link treatment).
+  a:not(.btn) {
+    text-decoration: none;
+    border-bottom: 1px solid rgba(201, 100, 66, 0.35);
+    transition: border-color 120ms ease, color 120ms ease;
+
+    &:hover,
+    &:focus {
+      border-bottom-color: #c96442;
+      color: #c96442;
+    }
+  }
+
+  // External link glyph to echo the PDF's "↗" convention.
+  a[href^="http"]:not(.btn)::after {
+    content: " \2197";
+    font-size: 0.85em;
+    color: #c96442;
+    margin-left: 0.1em;
+  }
+
+  // Code polish -- warm inline chips, whisper-ring blocks.
+  code {
+    font-size: 0.9em;
+    padding: 0.12em 0.4em;
+    background: #f0eee6;
+    border: 1px solid #e8e6dc;
+    border-radius: 6px;
+  }
+
+  pre.highlight,
+  div.highlighter-rouge pre.highlight {
+    background: #faf9f5;
+    border: 1px solid #e8e6dc;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+
+    code {
+      background: transparent;
+      border: 0;
+      padding: 0;
+    }
+  }
+
+  // Zebra tables.
+  table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px #d1cfc5;
+  }
+
+  table tr:nth-child(even) td {
+    background: #f5f4ed;
+  }
+
+  // Blockquotes as editorial asides.
+  blockquote {
+    border-left: 3px solid #c96442;
+    background: #faf9f5;
+    padding: 0.6em 1em;
+    color: #3d3d3a;
+    border-radius: 0 8px 8px 0;
+    margin: 1.2em 0;
+  }
+
+  // Callout / admonition polish (Just the Docs built-in).
+  .label,
+  .tag {
+    font-family: $heading-font-family;
+  }
+}
+
+// Header branding -- swap the default monospace title for the serif stack.
+.site-title {
+  font-family: $heading-font-family !important;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+// Sidebar: parchment tint + warm ring.
+.side-bar {
+  border-right: 1px solid #e8e6dc;
+  background: #faf9f5;
+}
+
+// Search input styled as a warm ivory chip.
+.search-input {
+  background: #faf9f5;
+  border: 1px solid #e8e6dc;
+  border-radius: 8px;
+}
+
+// Buttons: terracotta pill with whisper shadow.
+.btn-primary {
+  background: #c96442;
+  color: #faf9f5;
+  border: 1px solid #c96442;
+  box-shadow: 0 4px 24px rgba(201, 100, 66, 0.12);
+
+  &:hover {
+    background: #d97757;
+    border-color: #d97757;
+  }
+}
+
+// Footer credit: subtle.
+.site-footer {
+  font-size: 0.85rem;
+  color: #87867f;
+}

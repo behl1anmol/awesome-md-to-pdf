@@ -1,0 +1,29 @@
+/*
+ * fonts.css -- optional @font-face hooks.
+ *
+ * The real Anthropic Serif / Sans / Mono are proprietary and not public.
+ * tokens.css already declares a web-safe fallback cascade:
+ *
+ *   serif -> Georgia / Times New Roman
+ *   sans  -> system-ui / Segoe UI / Arial
+ *   mono  -> Consolas / Menlo / JetBrains Mono
+ *
+ * If you drop custom font files into src/themes/fonts/ you can activate them
+ * by uncommenting the @font-face blocks below (or wiring them up yourself).
+ *
+ * Example:
+ *
+ * @font-face {
+ *   font-family: "Anthropic Serif";
+ *   src: local("Source Serif 4"), local("Source Serif Pro"),
+ *        url("./fonts/AnthropicSerif.woff2") format("woff2");
+ *   font-weight: 400 500;
+ *   font-display: swap;
+ * }
+ */
+
+/*
+ * By default we rely on good serif fallbacks already widely installed
+ * on Windows, macOS and most Linux distros. Georgia is the canonical
+ * substitute for Anthropic Serif -- warm, medium weight, book-like.
+ */

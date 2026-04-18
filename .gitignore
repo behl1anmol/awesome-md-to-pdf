@@ -1,0 +1,24 @@
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# TypeScript build output
+dist/
+*.tsbuildinfo
+
+# Output
+pdf/
+samples/out/
+samples/out-*/
+*.pdf
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Misc
+.env
+.env.local

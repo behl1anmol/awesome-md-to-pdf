@@ -1,0 +1,40 @@
+---
+description: Commit style, changelog, versioning, release-tag parity.
+alwaysApply: true
+---
+
+# Commits, changelog, versioning
+
+## Commit style
+
+- Conventional-ish short subjects: `feat: ...`, `fix: ...`, `chore: ...`, `docs: ...`, `refactor: ...`, `perf: ...`, `test: ...`, `build: ...`, `ci: ...`.
+- Subject <= 72 chars, lowercase after the prefix, no trailing period.
+- Body optional but preferred for anything non-trivial; explain the "why", not the "what".
+- No emojis anywhere in commit subjects or bodies.
+- Never reference secrets, tokens, or internal URLs.
+
+## What NOT to commit
+
+- `dist/` — build output; listed in `.gitignore`.
+- `pdf/`, `samples/out*/` — render outputs, large binary PDFs/PNGs.
+- `node_modules/`.
+- Any `.env`, `credentials.json`, or files that look like secrets. If you need to commit a file that contains a token-looking string for testing, pause and flag it for a human.
+
+## User-visible changes
+
+When a change is user-visible (new flag, new command, output format change, new markdown feature, design parser behavior change):
+
+1. Bump `version` in [package.json](package.json) according to semver.
+2. Add an entry to [docs/changelog.md](docs/changelog.md) under a new version heading.
+3. Update any affected doc page(s) per [60-build-assets-and-docs.mdc](.cursor/rules/60-build-assets-and-docs.mdc).
+4. Land these three changes in the same PR. Release tagging happens later (see release workflow).
+
+## Release tag parity
+
+The `publish.yml` workflow at [.github/workflows/publish.yml](.github/workflows/publish.yml) asserts that the GitHub release tag (with the leading `v` stripped) equals `package.json` `version`. The release will fail if they diverge.
+
+- Tag format: `vX.Y.Z`. No pre-release suffix unless you've already updated `package.json` to match (e.g. tag `v0.2.0-beta.1` requires `"version": "0.2.0-beta.1"`).
+
+## Dist is never committed
+
+The build step runs in CI on every PR and at release time. Never commit `dist/` to short-circuit CI.

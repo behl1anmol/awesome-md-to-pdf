@@ -1,0 +1,673 @@
+/*
+ * base.css -- typography, layout, and component styling.
+ * All values reference design tokens from tokens.css -- never hard-coded.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 11pt;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/*
+ * .page is the full A4 canvas. The background color belongs to html/body
+ * so that Chromium paints it right up to the physical page edges (full
+ * bleed). The typographic margins of a typical A4 document (22mm top,
+ * 20mm side, 24mm bottom) live here as padding -- they sit on top of
+ * the colored canvas, not as whitespace around it.
+ */
+.page {
+  margin: 0;
+  padding: 22mm 20mm 24mm 20mm;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+ * Cover page -- sibling of .page, full-bleed, own padding
+ * =======================================================*/
+.cover {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40mm 26mm 40mm 26mm;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
+  background: var(--bg-page);
+}
+
+.cover__eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10pt;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 24pt;
+}
+
+.cover__title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 48pt;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin: 0 0 16pt 0;
+}
+
+.cover__subtitle {
+  font-family: var(--font-serif);
+  font-size: 16pt;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  margin: 0 0 32pt 0;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.cover__divider {
+  width: 80px;
+  height: 2px;
+  background: var(--brand);
+  margin: 32pt 0;
+  border: none;
+}
+
+.cover__meta {
+  font-family: var(--font-sans);
+  font-size: 10pt;
+  color: var(--text-tertiary);
+  line-height: 1.8;
+}
+
+.cover__meta strong {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.cover__files {
+  margin-top: 16pt;
+  padding: 0;
+  list-style: none;
+}
+
+.cover__files li {
+  padding: 4pt 0;
+  font-family: var(--font-mono);
+  font-size: 9.5pt;
+  color: var(--text-secondary);
+}
+
+/* =========================================================
+ * Table of contents -- sibling of .page, own padding
+ * =======================================================*/
+.toc-page {
+  padding: 22mm 20mm 24mm 20mm;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
+  background: var(--bg-page);
+}
+
+.toc-page h2 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 28pt;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0 0 24pt 0;
+  padding-bottom: 12pt;
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.toc ol,
+.toc ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.toc ol ol,
+.toc ul ul {
+  padding-left: 18pt;
+  margin-top: 4pt;
+}
+
+.toc li {
+  padding: 3pt 0;
+  font-family: var(--font-sans);
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.toc a {
+  color: var(--text-primary);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--border-warm);
+  display: inline-block;
+  padding-bottom: 2px;
+}
+
+.toc a:hover {
+  color: var(--brand);
+}
+
+/* =========================================================
+ * Article body -- Markdown
+ * =======================================================*/
+.markdown-body {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+
+/* Headings (serif, weight 500, tight leading) */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 1.6em 0 0.4em;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.markdown-body h1 {
+  font-size: 32pt;
+  line-height: 1.1;
+  margin-top: 0;
+  padding-bottom: 8pt;
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.markdown-body h2 {
+  font-size: 24pt;
+  line-height: 1.2;
+  padding-bottom: 6pt;
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.markdown-body h3 {
+  font-size: 18pt;
+  line-height: 1.25;
+}
+
+.markdown-body h4 {
+  font-size: 14pt;
+  line-height: 1.3;
+}
+
+.markdown-body h5 {
+  font-size: 12pt;
+  line-height: 1.3;
+}
+
+.markdown-body h6 {
+  font-size: 10pt;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+/* Anchor link icon on headings (hidden in PDF) */
+.markdown-body .header-anchor {
+  display: none;
+}
+
+/* Paragraphs */
+.markdown-body p {
+  margin: 0 0 12pt 0;
+  line-height: 1.6;
+  orphans: 3;
+  widows: 3;
+}
+
+/* Lead paragraph (first p after h1) */
+.markdown-body h1 + p {
+  font-family: var(--font-serif);
+  font-size: 13pt;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin-bottom: 18pt;
+}
+
+/* Links */
+.markdown-body a {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  font-weight: 500;
+}
+
+.markdown-body a:hover {
+  color: var(--brand-soft);
+}
+
+.markdown-body a.external-link::after {
+  content: " \2197";
+  font-size: 0.85em;
+  color: var(--brand);
+  margin-left: 1px;
+}
+
+.markdown-body.show-link-urls a.external-link::after {
+  content: " \2197 (" attr(href) ")";
+  font-size: 0.8em;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* Lists */
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 12pt 0;
+  padding-left: 20pt;
+}
+
+.markdown-body li {
+  margin: 4pt 0;
+  line-height: 1.6;
+}
+
+.markdown-body li > p {
+  margin: 0 0 4pt 0;
+}
+
+.markdown-body ul ul,
+.markdown-body ol ol,
+.markdown-body ul ol,
+.markdown-body ol ul {
+  margin: 4pt 0;
+}
+
+/* Task lists */
+.markdown-body .task-list-item {
+  list-style: none;
+  margin-left: -20pt;
+  padding-left: 20pt;
+  position: relative;
+}
+
+.markdown-body .task-list-item-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 11pt;
+  height: 11pt;
+  border: 1px solid var(--border-warm);
+  background: var(--bg-sand);
+  border-radius: 3px;
+  margin-right: 6pt;
+  vertical-align: -1pt;
+  position: relative;
+}
+
+.markdown-body .task-list-item-checkbox:checked {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.markdown-body .task-list-item-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 3px;
+  height: 6px;
+  border: solid #faf9f5;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* Strong & emphasis */
+.markdown-body strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.markdown-body em {
+  font-style: italic;
+}
+
+/* Horizontal rule -- editorial flair */
+.markdown-body hr {
+  border: none;
+  height: 24pt;
+  margin: 24pt 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.markdown-body hr::before {
+  content: "\2022 \00a0 \2022 \00a0 \2022";
+  color: var(--brand);
+  font-size: 10pt;
+  letter-spacing: 4px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-page);
+  padding: 0 12pt;
+}
+
+.markdown-body hr::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-warm);
+  z-index: -1;
+}
+
+/* Blockquote */
+.markdown-body blockquote {
+  margin: 16pt 0;
+  padding: 6pt 16pt;
+  border-left: 3px solid var(--brand);
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--text-secondary);
+  background: transparent;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.markdown-body blockquote p {
+  margin: 4pt 0;
+  font-size: 12pt;
+  line-height: 1.55;
+}
+
+.markdown-body blockquote p:first-child {
+  margin-top: 0;
+}
+
+.markdown-body blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Inline code */
+.markdown-body code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--code-inline-bg);
+  color: var(--text-primary);
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: -0.2px;
+}
+
+/* Code block */
+.markdown-body pre {
+  font-family: var(--font-mono);
+  font-size: 9.5pt;
+  line-height: 1.55;
+  background: var(--code-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-ring);
+  margin: 14pt 0;
+  padding: 12pt 14pt;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  position: relative;
+  letter-spacing: -0.2px;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+  display: block;
+}
+
+/* Language chip (added by markdown.js when language is present) */
+.code-wrap {
+  position: relative;
+  margin: 14pt 0;
+}
+
+.code-wrap pre {
+  margin: 0;
+  padding-top: 22pt;
+}
+
+.code-wrap .code-lang {
+  position: absolute;
+  top: 8pt;
+  right: 10pt;
+  font-family: var(--font-sans);
+  font-size: 8pt;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  background: var(--bg-sand);
+  padding: 2pt 6pt;
+  border-radius: var(--radius-sm);
+  z-index: 1;
+}
+
+/* Tables */
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16pt 0;
+  font-family: var(--font-sans);
+  font-size: 10.5pt;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.markdown-body thead {
+  background: var(--bg-sand);
+}
+
+.markdown-body th {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  text-align: left;
+  padding: 8pt 10pt;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-warm);
+  font-size: 11pt;
+}
+
+.markdown-body td {
+  padding: 7pt 10pt;
+  border-top: 1px solid var(--border-warm);
+  color: var(--text-primary);
+  vertical-align: top;
+}
+
+.markdown-body tbody tr:nth-child(even) {
+  background: var(--bg-surface);
+}
+
+/* Images / figures */
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-warm);
+  box-shadow: var(--shadow-whisper);
+  display: block;
+  margin: 16pt auto;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.markdown-body figure {
+  margin: 18pt 0;
+  text-align: center;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.markdown-body figcaption {
+  font-family: var(--font-sans);
+  font-size: 9pt;
+  color: var(--text-tertiary);
+  margin-top: 6pt;
+  font-style: italic;
+}
+
+/* Mermaid container */
+.markdown-body .mermaid {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-warm);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-whisper);
+  padding: 18pt 14pt;
+  margin: 18pt 0;
+  text-align: center;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  overflow: hidden;
+}
+
+.markdown-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Admonitions */
+.markdown-body .admonition {
+  margin: 16pt 0;
+  padding: 12pt 16pt 12pt 16pt;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-warm);
+  border-left-width: 3px;
+  background: var(--bg-surface);
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.markdown-body .admonition .admonition-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 12pt;
+  margin: 0 0 4pt 0;
+  color: var(--text-primary);
+}
+
+.markdown-body .admonition p {
+  margin: 4pt 0;
+  font-size: 10.5pt;
+}
+
+.markdown-body .admonition p:first-of-type {
+  margin-top: 0;
+}
+
+.markdown-body .admonition p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body .admonition.note {
+  border-left-color: var(--text-secondary);
+}
+
+.markdown-body .admonition.tip {
+  border-left-color: var(--accent-tip);
+}
+
+.markdown-body .admonition.tip .admonition-title {
+  color: var(--accent-tip);
+}
+
+.markdown-body .admonition.warning {
+  border-left-color: var(--brand);
+}
+
+.markdown-body .admonition.warning .admonition-title {
+  color: var(--brand);
+}
+
+.markdown-body .admonition.danger {
+  border-left-color: var(--error);
+}
+
+.markdown-body .admonition.danger .admonition-title {
+  color: var(--error);
+}
+
+/* Footnotes */
+.markdown-body .footnotes {
+  margin-top: 32pt;
+  padding-top: 16pt;
+  border-top: 1px solid var(--border-warm);
+  font-size: 9.5pt;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+}
+
+.markdown-body .footnotes ol {
+  padding-left: 20pt;
+}
+
+.markdown-body .footnotes li {
+  margin: 4pt 0;
+  font-size: 9.5pt;
+}
+
+.markdown-body .footnote-ref a,
+.markdown-body .footnote-backref {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+/* KaTeX tweaks */
+.markdown-body .katex {
+  font-size: 1.02em;
+}
+
+.markdown-body .katex-display {
+  margin: 14pt 0;
+  padding: 8pt 0;
+  overflow-x: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Page break helper */
+.page-break {
+  page-break-before: always;
+  break-before: page;
+  height: 0;
+}

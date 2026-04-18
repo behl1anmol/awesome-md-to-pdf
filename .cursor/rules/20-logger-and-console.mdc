@@ -1,0 +1,28 @@
+---
+description: Stdout/stderr discipline. Where console.* is allowed vs banned.
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+# Logger & console discipline
+
+All user-facing output MUST go through [src/logger.ts](src/logger.ts). Raw `console.*` calls are banned everywhere except the narrow exceptions listed below.
+
+## Sanctioned raw-console callsites
+
+1. [src/pdf.ts](src/pdf.ts): `page.on('pageerror', ...)` and `page.on('requestfailed', ...)` use `console.error` to forward Chromium errors to stderr during conversion. Keep them.
+2. [src/mermaid-runtime.ts](src/mermaid-runtime.ts): the inline `<script>` emitted into the Puppeteer page uses `console.error('mermaid render failed:', e)`. That runs inside Chromium, not Node, so it cannot call the logger.
+3. [src/banner.ts](src/banner.ts) and [src/logger.ts](src/logger.ts) themselves write to `console.log` to paint the banner and summary. That is the logger's implementation layer.
+4. Progress rendering in [src/progress.ts](src/progress.ts) goes through `cli-progress`, which writes directly. Do not replace.
+
+## Rules of thumb
+
+- Feature work: import `* as logger` (or named helpers) and route messages through it.
+- If you must debug-print during development, remove the `console.log` before committing. CI does not grep for it, but the code reviewer will.
+- Never write secrets, tokens, or full request bodies through any channel. See [80-security-and-deps.mdc](.cursor/rules/80-security-and-deps.mdc).
+
+## Interaction with the progress bar
+
+- When `canBar` is true in [src/converter.ts](src/converter.ts), `cli-progress` owns stdout while files convert. Writing through `logger.info` during that window will visibly corrupt the bar.
+- Emit any info/warn messages BEFORE `progress?.startBatch()` or AFTER `progress?.endBatch()`.
+- Errors during a file are already routed: `progress?.failFile(message)` records the failure on the bar; the final `logger.summary()` prints it cleanly.

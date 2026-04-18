@@ -1,0 +1,38 @@
+---
+description: Core project conventions for awesome-md-to-pdf. Language, indent, logging discipline, comment hygiene.
+alwaysApply: true
+---
+
+# Core conventions
+
+## Runtime & tooling
+
+- Node `>=18` (see `engines` in [package.json](package.json)).
+- TypeScript source under [src/](src) is compiled by `tsc` to CommonJS in `dist/`. Source maps are off.
+- 2-space indent. Single quotes. Trailing newline on every file. LF line endings.
+- All entry points are loaded from `dist/` by the shims in `bin/`; never hand-import `src/` files from `bin/` or `scripts/`.
+
+## Imports
+
+- Prefer `import` / ES module syntax inside `src/**/*.ts`. `require` is only acceptable for dynamic package resolution (see `require.resolve('katex/package.json')` in [src/template.ts](src/template.ts)) or in CommonJS `scripts/*.js`.
+- Inside `src/`, prefer named exports. Default exports are banned.
+- Group imports: Node built-ins first, then third-party, then local relative imports. Keep a blank line between groups.
+
+## Logging & stdout discipline
+
+- User-facing output ALWAYS routes through [src/logger.ts](src/logger.ts) (`logger.info / warn / error / success / muted / brand / banner / spinner / summary`). Never write raw `console.log` from app code.
+- The only sanctioned raw `console.error` callsites are the Puppeteer `pageerror` and `requestfailed` listeners inside [src/pdf.ts](src/pdf.ts). They forward in-browser errors to stderr and must not be replaced with the logger (they run during a conversion where the progress bar owns stdout).
+- Do not mix the progress bar and ora spinners for the same batch. The converter already selects one via the `canBar` rule in [src/converter.ts](src/converter.ts); preserve that policy.
+
+## Comments
+
+- No narrating comments. Never write `// import the module`, `// define the function`, `// return the result`, etc.
+- Comments explain non-obvious intent, constraints, or contracts only. Follow the tone of the existing comment blocks in [src/pdf.ts](src/pdf.ts) and [src/repl.ts](src/repl.ts).
+- No emojis in code, commits, filenames, or identifiers. Use Unicode escapes (`\u2726`, `\u2500`) for glyph output, not literal emoji.
+
+## Hard bans
+
+- No `any` types unless you can justify them with a one-line comment. Prefer `unknown` plus narrowing.
+- No new top-level side-effects in `src/**/*.ts`. Entry point is `cli.ts` via `bin/*.js`.
+- No edits to `dist/`. It is the build output and is gitignored.
+- No committing `pdf/`, `samples/out*/`, `node_modules/`.

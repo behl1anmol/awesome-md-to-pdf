@@ -1,0 +1,97 @@
+# NOTE: replace behl1anmol with the GitHub owner/org once the repo is created.
+
+title: awesome-md-to-pdf
+tagline: Awesome editorial Markdown to PDF, Claude-inspired.
+description: >-
+  Convert a directory of Markdown files into beautifully styled PDFs.
+  Ships with a Claude/Anthropic-inspired default design and parses any
+  DESIGN.md from getdesign.md to re-theme the output on the fly.
+
+url: "https://behl1anmol.github.io"
+baseurl: "/awesome-md-to-pdf"
+
+remote_theme: just-the-docs/just-the-docs
+
+color_scheme: parchment
+
+search_enabled: true
+search:
+  heading_level: 3
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s\-/]+/
+  rel_url: true
+  button: false
+
+heading_anchors: true
+permalink: pretty
+
+# Navigation
+aux_links:
+  "GitHub":
+    - "https://github.com/behl1anmol/awesome-md-to-pdf"
+  "npm":
+    - "https://www.npmjs.com/package/awesome-md-to-pdf"
+aux_links_new_tab: true
+
+nav_external_links:
+  - title: getdesign.md
+    url: https://getdesign.md
+    hide_icon: false
+
+# Footer
+footer_content: >-
+  <span>Built with</span>
+  <a href="https://just-the-docs.com">Just the Docs</a>
+  <span>and styled after the parchment palette of</span>
+  <a href="https://github.com/behl1anmol/awesome-md-to-pdf">awesome-md-to-pdf</a>.
+last_edit_timestamp: true
+last_edit_time_format: "%b %-d, %Y"
+gh_edit_link: true
+gh_edit_link_text: Edit this page on GitHub
+gh_edit_repository: "https://github.com/behl1anmol/awesome-md-to-pdf"
+gh_edit_branch: main
+gh_edit_source: docs
+gh_edit_view_mode: tree
+
+# Callouts (Claude-style admonitions)
+callouts_level: quiet
+callouts:
+  note:
+    title: Note
+    color: grey-dk
+  tip:
+    title: Tip
+    color: green
+  warning:
+    title: Warning
+    color: yellow
+  danger:
+    title: Danger
+    color: red
+
+# Mermaid diagram support (Just the Docs built-in)
+mermaid:
+  version: "10.9.1"
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# SEO defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      image: /assets/images/social-card.png
+      layout: default
+
+# Exclude things that shouldn't be in the built site
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - node_modules
+  - README.md

@@ -1,0 +1,41 @@
+---
+description: Build, asset copy, docs, and dist layout rules.
+globs: scripts/**,src/themes/**,src/designs/**,docs/**,package.json,tsconfig.json
+alwaysApply: false
+---
+
+# Build, assets, and docs
+
+## Build pipeline
+
+- `npm run build` = `tsc && node scripts/copy-assets.js`. Defined in [package.json](package.json).
+- `tsc` emits `dist/*.js` from `src/*.ts`. `scripts/copy-assets.js` then copies `src/themes/*` and `src/designs/*` into `dist/themes/` and `dist/designs/`.
+- `bin/awesome-md-to-pdf.js` and `bin/md-to-pdf.js` are CommonJS shims that `require('../dist/cli.js')`. `cli.ts` resolves `../package.json` relative to its compiled location — do not move `cli.ts` or change the `main` path without updating the `require('../package.json')` call in [src/cli.ts](src/cli.ts).
+
+## Adding a runtime asset
+
+If you add a file under `src/themes/` or `src/designs/` that must be available at runtime:
+
+1. It is picked up automatically by `copyRecursive` in [scripts/copy-assets.js](scripts/copy-assets.js). Good.
+2. If you add a NEW top-level assets directory (e.g. `src/templates/`), extend the `COPY_DIRS` array in `copy-assets.js`. Do not skip this step — `tsc` will not copy non-TS files.
+3. Ensure the file is included by the `files` allowlist in [package.json](package.json). It already lists `dist` (which contains the copied assets), so new top-level `dist/<name>/` directories are covered transitively.
+
+## Docs
+
+The Jekyll site under [docs/](docs) is the user-facing documentation surface. A PR is not complete until docs are updated.
+
+- New CLI flag -> [docs/cli-reference.md](docs/cli-reference.md) + README options table.
+- New slash command -> [docs/chat-mode.md](docs/chat-mode.md).
+- New markdown feature -> [docs/markdown-features.md](docs/markdown-features.md).
+- New DESIGN.md capability -> [docs/designs.md](docs/designs.md) + [docs/themes-and-modes.md](docs/themes-and-modes.md) if mode interaction changes.
+- Architecture change -> [docs/architecture.md](docs/architecture.md) (keep the mermaid module map accurate).
+- User-visible change -> [docs/changelog.md](docs/changelog.md) entry.
+
+## tsconfig
+
+- [tsconfig.json](tsconfig.json) emits CommonJS. The project assumes `require.resolve` is available at runtime (used for mermaid and KaTeX asset resolution). Do not switch module target to ESM without rewriting `resolveMermaidSrc` and `readKatexCss`.
+- `strict` is on. Keep it on.
+
+## Demo scripts
+
+- `npm run demo:light` / `npm run demo:dark` render the `samples/` directory end-to-end and are the recommended smoke test after any pipeline change. Both must pass before a PR is considered ready.

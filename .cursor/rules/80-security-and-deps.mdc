@@ -1,0 +1,35 @@
+---
+description: Security, secrets, dependency policy for the repo.
+globs: package.json,package-lock.json,.github/**,scripts/**
+alwaysApply: false
+---
+
+# Security & dependencies
+
+## Secrets
+
+- The only long-lived secret is `NPM_TOKEN`, consumed by [.github/workflows/publish.yml](.github/workflows/publish.yml). Do not add more unless truly necessary.
+- OIDC (`permissions: id-token: write`) is used for npm provenance attestation and for GitHub Pages deploy. Both avoid long-lived credentials. Preserve these permissions blocks.
+- Never `console.log` or `logger.info` a token, an auth header, or a full HTTP request body. The app currently makes no authenticated outbound calls; keep it that way.
+
+## Dependency policy
+
+- [.github/dependabot.yml](.github/dependabot.yml) owns routine bumps. Do not hand-edit versions in `package.json` or `package-lock.json` to chase upgrades — open an issue or let Dependabot PR land.
+- `puppeteer` is the largest dependency and the most security-sensitive (it downloads a Chromium). Respect:
+  - `PUPPETEER_SKIP_DOWNLOAD=1` in every CI workflow to avoid an unneeded 150 MB fetch during typecheck / publish.
+  - Users behind corporate proxies rely on `HTTPS_PROXY` and `PUPPETEER_EXECUTABLE_PATH` — do not remove these escape hatches from the README / troubleshooting docs.
+- New runtime dependencies must be justified (size, provenance, maintenance). Prefer standard-library + one small dep over a large framework.
+
+## Puppeteer launch args
+
+The launch args in [src/pdf.ts](src/pdf.ts) are intentional:
+
+- `--no-sandbox`, `--disable-setuid-sandbox` — required for headless Linux CI containers.
+- `--disable-dev-shm-usage` — avoids `/dev/shm` exhaustion in containers.
+- `--font-render-hinting=none` — stabilizes typography between hosts.
+
+Do not remove them unless you've verified the change on the full CI matrix (ubuntu + windows, Node 18/20/22).
+
+## Script surface
+
+- `scripts/*.js` are CommonJS Node scripts run via npm scripts. They should not execute arbitrary user input from `argv` without path normalization and existence checks (see `scripts/verify-fullbleed.js` as the baseline pattern).

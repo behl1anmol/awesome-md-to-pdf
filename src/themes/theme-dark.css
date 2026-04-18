@@ -1,0 +1,18 @@
+/*
+ * theme-dark.css
+ * Token overrides already live in tokens.css under [data-mode="dark"].
+ * This file applies dark-only component tweaks.
+ */
+
+[data-mode="dark"] .markdown-body hr::before {
+  background: var(--bg-page);
+}
+
+[data-mode="dark"] .markdown-body pre {
+  box-shadow: 0 0 0 1px var(--ring-warm), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+[data-mode="dark"] .markdown-body img {
+  /* Slightly dim images on dark so they don't blow out the spread */
+  filter: brightness(0.96);
+}

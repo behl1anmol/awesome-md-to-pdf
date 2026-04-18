@@ -1,0 +1,81 @@
+/*
+ * Design tokens -- Claude/Anthropic-inspired.
+ * All warm-toned. No cool blue-grays anywhere (except the focus ring).
+ */
+
+:root {
+  /* ---- LIGHT MODE (Parchment canvas) ---- */
+  --bg-page:        #f5f4ed;  /* Parchment */
+  --bg-surface:     #faf9f5;  /* Ivory (cards) */
+  --bg-sand:        #e8e6dc;  /* Warm Sand */
+  --bg-white:       #ffffff;
+
+  --text-primary:   #141413;  /* Near Black */
+  --text-secondary: #5e5d59;  /* Olive Gray */
+  --text-tertiary:  #87867f;  /* Stone Gray */
+  --text-emph:      #3d3d3a;  /* Dark Warm */
+  --text-button:    #4d4c48;  /* Charcoal Warm */
+
+  --brand:          #c96442;  /* Terracotta */
+  --brand-soft:     #d97757;  /* Coral */
+  --error:          #b53333;  /* Error Crimson */
+  --focus:          #3898ec;  /* Focus Blue (only cool color) */
+
+  --accent-tip:     #6b7a5a;  /* muted green for tip admonition */
+
+  --border-soft:    #f0eee6;  /* Border Cream */
+  --border-warm:    #e8e6dc;  /* Border Warm */
+  --ring-warm:      #d1cfc5;
+  --ring-deep:      #c2c0b6;
+
+  --code-bg:        #faf9f5;
+  --code-border:    #e8e6dc;
+  --code-inline-bg: #f0eee6;
+  --code-gutter:    #87867f;
+
+  --shadow-whisper: 0 4px 24px rgba(0, 0, 0, 0.05);
+  --shadow-ring:    0 0 0 1px var(--ring-warm);
+
+  --radius-sm:      6px;
+  --radius-md:      8px;
+  --radius-lg:      12px;
+  --radius-xl:      16px;
+  --radius-2xl:     24px;
+  --radius-3xl:     32px;
+
+  --font-serif: "Anthropic Serif", "Source Serif Pro", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-sans:  "Anthropic Sans", "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono:  "Anthropic Mono", "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, Menlo, monospace;
+}
+
+/* ---- DARK MODE (Near Black canvas) ---- */
+[data-mode="dark"] {
+  --bg-page:        #141413;  /* Near Black */
+  --bg-surface:     #30302e;  /* Dark Surface */
+  --bg-sand:        #30302e;
+  --bg-white:       #30302e;
+
+  --text-primary:   #faf9f5;  /* Ivory */
+  --text-secondary: #b0aea5;  /* Warm Silver */
+  --text-tertiary:  #87867f;  /* Stone Gray */
+  --text-emph:      #faf9f5;
+  --text-button:    #b0aea5;
+
+  --brand:          #d97757;  /* Coral pops on dark */
+  --brand-soft:     #c96442;
+
+  --accent-tip:     #8a9a78;
+
+  --border-soft:    #30302e;
+  --border-warm:    #3d3d3a;
+  --ring-warm:      #3d3d3a;
+  --ring-deep:      #4d4c48;
+
+  --code-bg:        #1d1d1b;
+  --code-border:    #30302e;
+  --code-inline-bg: #30302e;
+  --code-gutter:    #5e5d59;
+
+  --shadow-whisper: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-ring:    0 0 0 1px var(--ring-warm);
+}
