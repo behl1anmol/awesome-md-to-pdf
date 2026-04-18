@@ -53,7 +53,7 @@ after the Anthropic product aesthetic:
 - Ring-based depth (`box-shadow: 0 0 0 1px ...`) rather than heavy drop shadows.
 
 See the full token set at
-[`src/themes/tokens.css`](https://github.com/behl1anmol/awesome-md-to-pdf/blob/main/src/themes/tokens.css).
+[`src/themes/tokens.css`](https://github.com/<owner>/awesome-md-to-pdf/blob/main/src/themes/tokens.css).
 
 ## Authoring your own DESIGN.md
 
@@ -90,6 +90,48 @@ The parser walks the **Color Palette & Roles** section first, then the
 **Quick Color Reference** block if present, and finally falls back to any
 inline hex codes it can find near named roles.
 
+## How the parser discovers roles
+
+For every color literal on a line, the parser stitches together a
+**context phrase** from the text **before** the color (the name) and the
+text **after** the color (the description) and runs that phrase against
+a table of functional-role synonyms. Descriptions carry most of the
+signal because the name is typically brand-specific (`Pure Black`,
+`Geist Blue`, `Signal Orange`) while the description is written in
+universal English.
+
+The recognized functional vocabulary is:
+
+- `textPrimary` -- `all text`, `primary text`, `headings and body`,
+  `pure black`, `true black`, `near black`.
+- `textSecondary` -- `secondary text`, `muted text`, `body gray`,
+  `gray 600/700`.
+- `textTertiary` -- `tertiary text`, `metadata`, `caption`, `footnote`,
+  `disabled text`, `gray 400/500`.
+- `bgPage` -- `page background`, `root background`, `all backgrounds`,
+  `body background`, `primary page background`, `canvas`, `pure white`.
+- `bgSurface` -- `card surface(s)`, `card background`, `elevated
+  surface`, `container`, `panel`.
+- `bgSand` -- `section background`, `alternate background`.
+- `brand` -- `primary cta`, `primary button`, `solid buttons`, `cta`,
+  `accent`, `brand color`, `link blue`, `active states`.
+- `brandSoft` -- `brand hover`, `cta hover`, `accent hover`, `hover
+  color`.
+- `borderSoft` -- `borders`, `borders default`, `subtle border`,
+  `hairline`, `divider`.
+- `borderWarm` -- `borders strong`, `section divider`.
+- `error` -- `error`, `danger`, `negative red`, `crimson`.
+- `focus` -- `focus ring`, `focus outline`, `focus color`.
+
+A phrase that mentions **two or more different role families** -- such
+as `All text, all buttons, all borders` or `Page background, card
+surfaces` -- is treated as a **multi-role declaration** and assigns the
+same color to every matching slot in one pass.
+
+Font lines accept compound labels (`Body / UI:`, `Monospace / Labels:`,
+`Display / Buttons:`); the first keyword is taken as the authoritative
+role and the qualifier after the slash is discarded.
+
 ## Dark mode
 
 If the `DESIGN.md` mentions dark-mode tokens explicitly (often as a nested
@@ -124,6 +166,6 @@ sanity-check the parser before running a batch.
 ## Implementation pointer
 
 The parser lives at
-[`src/design.ts`](https://github.com/behl1anmol/awesome-md-to-pdf/blob/main/src/design.ts).
+[`src/design.ts`](https://github.com/<owner>/awesome-md-to-pdf/blob/main/src/design.ts).
 It's a forgiving regex + synonym table; any slot it can't cleanly identify
 inherits from the Claude baseline so the output never breaks.

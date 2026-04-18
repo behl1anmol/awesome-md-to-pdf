@@ -192,99 +192,158 @@ interface SynonymRule {
   not?: RegExp[];
 }
 
+/*
+ * The SYNONYMS table is a FUNCTIONAL-ROLE LEXICON, not a brand registry.
+ * Every pattern must describe a generic English design role ("body text",
+ * "page background", "card surface", "primary cta") that any designer from
+ * any company would use. Brand-specific names ("terracotta", "ship red",
+ * "preview pink", "ivory") exist ONLY as legacy entries for back-compat
+ * with the bundled Claude baseline and the getdesign.md fixtures we
+ * originally shipped; never add new ones.
+ *
+ * If you find yourself wanting to add a brand name, stop and ask: "does
+ * the DESIGN.md author also describe this slot in functional terms
+ * somewhere on the same line?" If yes, teach the parser that functional
+ * term instead.
+ */
 const SYNONYMS: SynonymRule[] = [
   // Backgrounds / canvases
   {
     slot: 'bgPage',
     patterns: [
+      // Functional vocabulary (universal across designs)
+      /\bpage\s*(?:background|bg|canvas)\b/i,
+      /\broot\s*(?:background|bg)\b/i,
+      /\ball\s+backgrounds?\b/i,
+      /\bbody\s*background\b/i,
+      /\bprimary\s+(?:page\s+)?background\b/i,
+      /\bcanvas\b/i,
+      /\bbackground(?:\s*color)?$/i,
+      /^\s*background\b/i,
+      // Generic English color names (not brand-specific)
+      /\bpure\s*white\b/i,
+      // Legacy brand-ish names from shipped fixtures
       /\bparchment\b/i,
       /\bpaper(?:\s*white)?\b/i,
       /\bnewsprint\b/i,
-      /\bpage\s*(?:background|bg|canvas)\b/i,
-      /\bcanvas\b/i,
-      /\bpure\s*white\b/i,
-      /^background\b/i,
     ],
+    // "dark" keeps light-mode selector out of dark-hinted phrasing; "ink"
+    // is an intentional exclusion so the Claude "page ink" token lands on
+    // textPrimary instead of bgPage. We deliberately do NOT blacklist
+    // "card" or "surface" here -- descriptions like "Page background and
+    // card surfaces" are common and must still assign to bgPage because
+    // bgSurface fires second when the author didn't split the two.
     not: [/\bdark\b/i, /\bink\b/i],
   },
   {
     slot: 'bgSurface',
     patterns: [
+      // Functional vocabulary (plural-tolerant: designers often write
+      // "card surfaces" or "elevated panels").
+      /\bcards?\s*(?:surfaces?|backgrounds?|bg|fill)?\b/i,
+      /\bcontent\s*container\b/i,
+      /\belevated(?:\s*surfaces?)?\b/i,
+      /\bsurfaces?\s*(?:elevated|default|primary)?\b/i,
+      /\bcontainers?\b/i,
+      /\bpanels?\b/i,
+      // Legacy
       /\bivory\b/i,
-      /\bcard\s*surface\b/i,
-      /\belevated\b/i,
-      /\bsurface\b/i,
-      /\bcontainer\b/i,
-      /\bpanel\b/i,
     ],
     not: [/\bdark\b/i],
   },
   {
     slot: 'bgSand',
-    patterns: [/\bsand\b/i, /\bchip\b/i, /\bwarm\s*sand\b/i, /\bsubtle\s*bg\b/i],
+    patterns: [
+      /\bsand\b/i,
+      /\bwarm\s*sand\b/i,
+      /\bsubtle\s*bg\b/i,
+      /\bsection\s*background\b/i,
+      /\balt(?:ernate)?\s*background\b/i,
+      /\bchip\b/i,
+    ],
   },
 
   // Text
   {
     slot: 'textPrimary',
     patterns: [
-      /\bnear\s*black\b/i,
+      // Functional vocabulary (universal)
+      /\ball\s+text\b/i,
       /\bprimary\s*text\b/i,
       /\bheading\s*text\b/i,
       /\bheadline(?:\s*text)?\b/i,
+      /\bheadings?\s+and\s+body\b/i,
       /\bbody\s*text\b/i,
+      /\btext\s+primary\b/i,
+      /\bprimary\s+(?:body|headline|heading)\b/i,
+      // Generic English
+      /\bnear\s*black\b/i,
+      /\bpure\s*black\b/i,
+      /\btrue\s*black\b/i,
+      // Legacy
       /\bpage\s*ink\b/i,
     ],
-    not: [/\bdark\b/i, /\bsurface\b/i, /\bbackground\b/i],
+    not: [/\bdark\b/i, /\bsurface\b/i, /\bbackground\b/i, /\bbutton\b/i, /\bcta\b/i, /\bbrand\b/i, /\baccent\b/i],
   },
   {
     slot: 'textSecondary',
     patterns: [
-      /\bolive\s*gray\b/i,
       /\bsecondary\s*text\b/i,
+      /\btext\s+secondary\b/i,
       /\bmuted\s*text\b/i,
       /\bbody\s*gray\b/i,
-      /\bgray\s*600\b/i,
-      /\bgray\s*700\b/i,
+      /\bgray\s*(?:600|700)\b/i,
+      // Legacy
+      /\bolive\s*gray\b/i,
+      /\bsilver\b/i,
     ],
   },
   {
     slot: 'textTertiary',
     patterns: [
-      /\bstone\s*gray\b/i,
       /\btertiary(?:\s*text)?\b/i,
+      /\btext\s+tertiary\b/i,
       /\bmetadata\b/i,
       /\bcaption(?:\s*gray)?\b/i,
       /\bfootnote\b/i,
-      /\bdisabled(?:\s*gray)?\b/i,
-      /\bgray\s*400\b/i,
-      /\bgray\s*500\b/i,
+      /\bdisabled(?:\s*text|\s*gray)?\b/i,
+      /\bgray\s*(?:400|500)\b/i,
+      // Legacy
+      /\bstone\s*gray\b/i,
     ],
   },
 
-  // Brand (must come BEFORE error so "ship red" or "link blue" wins)
+  // Brand (must come BEFORE error so "link blue" or generic "cta" wins over "error/red")
   {
     slot: 'brand',
     patterns: [
-      /\bterracotta\b/i,
-      /\bprimary\s*cta\b/i,
-      /\blink\s*(?:blue|color)\b/i,
+      // Functional vocabulary
+      /\bprimary\s*(?:cta|button|action)\b/i,
+      /\bsolid\s*buttons?\b/i,
+      /\ball\s+(?:solid\s+)?buttons?\b/i,
+      /\bcta\b/i,
+      /\baccent\b/i,
+      /\bbrand\s*(?:color|accent|primary)\b/i,
+      /^brand\b/i,
+      /\blink\s*(?:blue|color)?\b/i,
       /^link\b/i,
+      /\bactive\s+states?\b/i,
+      // Legacy brand-ish names from shipped Claude / Vercel / other fixtures
+      /\bterracotta\b/i,
       /\bship(?:\s*red)?\b/i,
       /\bpreview\s*pink\b/i,
-      /\bbrand\s*color\b/i,
-      /^brand\b/i,
-      /\baccent\b/i,
     ],
-    not: [/\bsoft\b/i, /\bhover\b/i, /\bsecondary\b/i],
+    not: [/\bsoft\b/i, /\bhover\b/i, /\bsecondary\b/i, /\bdisabled\b/i, /\bmuted\b/i],
   },
   {
     slot: 'brandSoft',
     patterns: [
+      /\bbrand\s*(?:soft|hover)\b/i,
+      /\bhover\s*(?:blue|accent|color|state)?\b/i,
+      /\bcta\s*hover\b/i,
+      /\baccent\s*hover\b/i,
+      // Legacy
       /\bcoral\b/i,
-      /\bbrand\s*soft\b/i,
-      /\bhover\s*(?:blue|accent|color)?\b/i,
-      /\bbrand\s*hover\b/i,
     ],
   },
 
@@ -292,20 +351,21 @@ const SYNONYMS: SynonymRule[] = [
   {
     slot: 'borderSoft',
     patterns: [
-      /\bborder\s*cream\b/i,
-      /\bborder\s*soft\b/i,
+      /\bborders?\s*(?:default|subtle|light|soft|color)?\b/i,
       /\bsubtle\s*border\b/i,
       /\bhairline\s*(?:tint|border)\b/i,
       /\bborder\s*\(light\)\b/i,
+      /\bdivider(?:\s*line)?\b/i,
+      /^divider\b/i,
+      // Legacy
+      /\bborder\s*cream\b/i,
     ],
   },
   {
     slot: 'borderWarm',
     patterns: [
-      /\bborder\s*warm\b/i,
-      /\bprominent\s*border\b/i,
+      /\bborders?\s*(?:strong|prominent|warm)\b/i,
       /\bsection\s*divider\b/i,
-      /^divider\b/i,
       /\bborders?\s*\(prominent\)\b/i,
     ],
   },
@@ -313,18 +373,18 @@ const SYNONYMS: SynonymRule[] = [
   // Semantic (come after brand)
   {
     slot: 'error',
-    patterns: [/\berror\b/i, /\bcrimson\b/i, /\bdanger\b/i],
+    patterns: [/\berror\b/i, /\bcrimson\b/i, /\bdanger\b/i, /\bnegative\s*(?:red|text)?\b/i],
     not: [/\bbrand\b/i, /\bcta\b/i, /\blink\b/i, /\bship\b/i, /\bpreview\b/i],
   },
   {
     slot: 'focus',
-    patterns: [/\bfocus\s*(?:ring|color|blue)?\b/i],
+    patterns: [/\bfocus\s*(?:ring|color|blue|outline)?\b/i],
   },
 
   // Code surfaces (rarely explicit in DESIGN.md but worth trying)
   {
     slot: 'codeBg',
-    patterns: [/\bcode\s*(?:background|surface)\b/i, /\bconsole\s*bg\b/i],
+    patterns: [/\bcode\s*(?:background|surface|block)\b/i, /\bconsole\s*bg\b/i],
   },
   {
     slot: 'codeBorder',
@@ -379,11 +439,26 @@ function extractPalette(raw: string): PaletteTokens {
 function extractDarkPalette(raw: string, light: PaletteTokens): PaletteTokens {
   const dark: PaletteTokens = {};
 
-  // Heuristic: look at lines that mention "dark" anywhere within 80 chars
-  // and try to map them to slots with a "dark hint" bias (e.g. "Dark
-  // Surface (#30302e)" -> bgSurface in dark mode, "Near Black (#141413):
-  // dark-theme page background" -> bgPage in dark mode).
-  const lines = splitLines(raw).filter((l) => /\bdark\b/i.test(l));
+  // Heuristic: a line belongs to the DARK palette only if "dark" appears as
+  // a ROLE QUALIFIER ("dark mode", "dark surface", "dark theme page
+  // background") -- NOT as descriptive prose ("text on dark surfaces",
+  // "stands out on dark backgrounds", "against dark canvases").
+  //
+  // The distinction matters because Figma-style monochrome palettes have
+  // light-mode lines like `**Pure White** (#ffffff): ...visible on dark
+  // surfaces`, and without this filter every "on dark" descriptive line
+  // dragged light colors into the dark palette.
+  const isRoleQualifier = (l: string): boolean => {
+    // Skip lines where "dark" is purely descriptive: "on (a) dark ...",
+    // "against dark ...", "visible on dark ...".
+    if (/\bon\s+(?:a\s+|the\s+)?dark\b/i.test(l)) return false;
+    if (/\bagainst\s+(?:a\s+|the\s+)?dark\b/i.test(l)) return false;
+    if (/\bvisible\s+on\s+dark\b/i.test(l)) return false;
+    // Accept only when "dark" qualifies a role noun.
+    return /\bdark\s*(?:mode|theme|surface|background|bg|canvas|card|palette|variant|page|ink|ui|navigation|sidebar)\b/i.test(l)
+      || /\bdark[-\s](?:mode|theme)\b/i.test(l);
+  };
+  const lines = splitLines(raw).filter(isRoleQualifier);
   assignFromLines(dark, lines, true);
 
   // Fill any missing slots by inverting the light palette.
@@ -399,6 +474,17 @@ function extractDarkPalette(raw: string, light: PaletteTokens): PaletteTokens {
  * Given a list of lines (potentially with bullet markers, bold markup, and
  * descriptive prose), try to map each "role-name + color" pair to a token
  * slot and write the color into the tokens object (without clobbering).
+ *
+ * For each color literal we build a CONTEXT PHRASE that includes BOTH the
+ * text before the literal (the "name", e.g. "Pure Black") AND the
+ * description after the literal (e.g. "All text, all solid buttons, all
+ * borders"). Descriptions carry the functional role in the vast majority
+ * of real DESIGN.md files because the name is brand-specific and the
+ * description is how humans explain what the color is for.
+ *
+ * When the context phrase contains multi-role language ("all text, all
+ * buttons"), the same color is allowed to populate multiple slots in one
+ * pass -- otherwise the first matching slot wins.
  */
 function assignFromLines(
   tokens: PaletteTokens,
@@ -410,25 +496,50 @@ function assignFromLines(
     const matches = Array.from(line.matchAll(COLOR_RE));
     if (matches.length === 0) continue;
 
-    for (const m of matches) {
+    const matchArr = matches;
+    for (let i = 0; i < matchArr.length; i++) {
+      const m = matchArr[i];
       const color = normalizeColor(m[0]);
       if (!color) continue;
 
-      // The "role phrase" is a slice of the line before the color literal,
-      // trimmed of markup.
-      const before = line.slice(0, m.index ?? 0);
-      const rolePhrase = extractRolePhrase(before);
-      if (!rolePhrase) continue;
+      const start = m.index ?? 0;
+      const end = start + m[0].length;
 
-      const slot = resolveSlot(rolePhrase, darkHint);
-      if (!slot) continue;
+      const before = line.slice(0, start);
+      // Description after the color runs up to the NEXT color literal on
+      // the same line (so multi-color lines don't cross-contaminate) or to
+      // end-of-line.
+      const nextStart = i + 1 < matchArr.length ? (matchArr[i + 1].index ?? line.length) : line.length;
+      const after = line.slice(end, nextStart);
 
-      // First match wins -- don't overwrite.
-      if (tokens[slot] === undefined) {
-        tokens[slot] = color;
+      const phrase = extractContextPhrase(before, after);
+      if (!phrase) continue;
+
+      const slots = resolveAllSlots(phrase, darkHint);
+      if (!slots.length) continue;
+
+      for (const slot of slots) {
+        if (tokens[slot] === undefined) {
+          tokens[slot] = color;
+        }
       }
     }
   }
+}
+
+/**
+ * Strip markdown markup (bullets, bold/italic, backticks, straight quotes)
+ * and trim. Used by both halves of the context phrase extraction.
+ */
+function stripMarkup(s: string): string {
+  return s
+    .replace(/^[-*+]\s*/, '')
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/`/g, '')
+    .replace(/"/g, '')
+    .replace(/[\u2018\u2019\u201c\u201d]/g, '')
+    .trim();
 }
 
 /**
@@ -441,38 +552,148 @@ function assignFromLines(
  *     -> "Page Ink"
  */
 function extractRolePhrase(before: string): string | null {
-  // Strip list markers and bold/italic markup.
-  let s = before
-    .replace(/^[-*+]\s*/, '')
-    .replace(/\*\*/g, '')
-    .replace(/\*/g, '')
-    .replace(/`/g, '')
-    .replace(/"/g, '')
-    .trim();
-
-  // Drop trailing punctuation/quotes that immediately precede the paren.
+  let s = stripMarkup(before);
   s = s.replace(/[\s(:\-,]+$/, '').trim();
 
-  // Keep only the last ~6 words before the color (role names are short).
+  // Keep only the last ~8 words before the color (role names are short).
   const words = s.split(/\s+/).filter(Boolean);
   const tail = words.slice(-8).join(' ');
   return tail || null;
 }
 
 /**
+ * Pull the "description" out of the text following a color literal. The
+ * description usually sits between the color and the next sentence and
+ * carries the functional role:
+ *   "(#000000): All text, all solid buttons, all borders."
+ *     -> "All text, all solid buttons, all borders"
+ *   "(#ffffff): Primary page background and card surfaces."
+ *     -> "Primary page background and card surfaces"
+ *
+ * Important invariant: when a single line lists multiple colors in the
+ * form `"Name A (#aaa)" and "Name B (#bbb)"`, the text between the first
+ * hex and the second hex belongs to Color B, NOT Color A. We therefore
+ * stop the description at the first closing straight/curly quote, since
+ * that marks the end of the current color's clause in all formats we've
+ * seen across the getdesign.md fixture corpus.
+ */
+function extractDescriptionPhrase(after: string): string {
+  let s = after.replace(/^[\s)\]:,.\-]+/, '');
+
+  // Cut at the first closing quote (straight or curly). This isolates the
+  // current color's clause when a line chains multiple colors together.
+  const quoteIdx = s.search(/["\u201c\u201d\u2018\u2019]/);
+  if (quoteIdx >= 0) s = s.slice(0, quoteIdx);
+
+  // Cut at conjunctions that introduce a NEW color label (heuristic: the
+  // conjunction is followed by a capitalized word that looks like a name).
+  // Skip this when the word after `and`/`or` is lowercase -- that case is
+  // genuine description text like "page background and card surfaces".
+  const conjMatch = s.match(/\s(?:and|or)\s+(?=[A-Z][a-zA-Z]*\s+(?:Black|White|Gray|Grey|Blue|Red|Green|Yellow|Purple|Pink|Orange|Brown|Gold))/);
+  if (conjMatch && typeof conjMatch.index === 'number') {
+    s = s.slice(0, conjMatch.index);
+  }
+
+  s = stripMarkup(s);
+
+  // Stop at the first sentence-ending period so multi-sentence descriptions
+  // don't smuggle unrelated phrasing into the role lookup.
+  const dotIdx = s.search(/\.\s|\.$/);
+  if (dotIdx > 0) s = s.slice(0, dotIdx);
+
+  // Clamp length so pathological long descriptions don't slow regex matching.
+  if (s.length > 240) s = s.slice(0, 240);
+  return s.trim();
+}
+
+/**
+ * Combine the name (before hex) and description (after hex) into a single
+ * searchable phrase. The separator " | " keeps the two halves disjoint so
+ * a pattern that anchors to start-of-string with ^ still works against
+ * either half independently.
+ */
+function extractContextPhrase(before: string, after: string): string | null {
+  const name = extractRolePhrase(before) ?? '';
+  const desc = extractDescriptionPhrase(after);
+  const combined = [name, desc].filter(Boolean).join(' | ');
+  return combined || null;
+}
+
+/**
+ * A role-noun family: phrases like "text", "heading", "body"; "button",
+ * "cta", "action"; "border", "divider"; "background", "page", "canvas",
+ * "surface", "card", "panel". A phrase that references two or more
+ * DIFFERENT families is describing a color that spans multiple slots.
+ */
+const ROLE_FAMILIES: RegExp[] = [
+  /\b(?:text|headings?|body|content|type|copy)\b/i,
+  /\b(?:buttons?|cta|actions?)\b/i,
+  /\b(?:borders?|dividers?)\b/i,
+  /\b(?:backgrounds?|page|canvas|surfaces?|cards?|panels?)\b/i,
+  /\b(?:links?|accents?)\b/i,
+];
+
+/**
+ * Heuristic: does the phrase explicitly declare a color that serves
+ * multiple roles? Fires when:
+ *   - "all X" appears two or more times ("All text, all buttons, all
+ *     borders"), OR
+ *   - the phrase mentions two or more distinct role-noun families, which
+ *     covers comma-separated lists like "Page background, card surfaces"
+ *     and "All text, primary CTA, borders".
+ */
+function isMultiRolePhrase(phrase: string): boolean {
+  const allMatches = phrase.match(/\ball\s+\w+/gi);
+  if (allMatches && allMatches.length >= 2) return true;
+
+  let families = 0;
+  for (const re of ROLE_FAMILIES) {
+    if (re.test(phrase)) families += 1;
+    if (families >= 2) return true;
+  }
+  return false;
+}
+
+/**
  * Map a role phrase through the synonym table and return the best slot.
  */
 function resolveSlot(rolePhrase: string, darkHint: boolean): TokenSlot | null {
+  // In dark mode, a "primary text" becomes the bg-page and vice versa.
+  // Don't apply that flip here -- we parse each mode independently.
+  void darkHint;
   for (const rule of SYNONYMS) {
     if (rule.not && rule.not.some((n) => n.test(rolePhrase))) continue;
     if (rule.patterns.some((p) => p.test(rolePhrase))) {
-      // In dark mode, a "primary text" becomes the bg-page and vice versa.
-      // Don't apply that flip here -- we parse each mode independently.
-      void darkHint;
       return rule.slot;
     }
   }
   return null;
+}
+
+/**
+ * Return every slot whose rule matches the phrase, in SYNONYMS order.
+ * Used when a color explicitly serves multiple roles on the same line.
+ * For non-multi-role phrases this collapses to `[resolveSlot(...)]`.
+ *
+ * In multi-role mode we deliberately RELAX the per-rule NOT filters --
+ * they exist to disambiguate narrow single-role phrases (e.g. "hover
+ * blue" should be brandSoft, not brand) and they cause false negatives
+ * when the phrase intentionally names several peers ("All text, primary
+ * CTA, borders"). The other rules' patterns still gate membership, so
+ * "all text" won't accidentally land in bgPage even with NOTs relaxed.
+ */
+function resolveAllSlots(rolePhrase: string, darkHint: boolean): TokenSlot[] {
+  void darkHint;
+  const multi = isMultiRolePhrase(rolePhrase);
+  const hits: TokenSlot[] = [];
+  for (const rule of SYNONYMS) {
+    if (!multi && rule.not && rule.not.some((n) => n.test(rolePhrase))) continue;
+    if (rule.patterns.some((p) => p.test(rolePhrase))) {
+      hits.push(rule.slot);
+      if (!multi) break;
+    }
+  }
+  return hits;
 }
 
 function countDefinedTokens(obj: PaletteTokens): number {
@@ -509,10 +730,21 @@ function extractFonts(raw: string): FontTokens {
  *   Headline: `Anthropic Serif`, with fallback: `Georgia`
  *   Primary: Geist, with fallbacks: Arial, Apple Color Emoji
  *   Monospace: `Anthropic Mono`, with fallback: `Arial`
+ *
+ * Also tolerates COMPOUND labels where designers combine two role keywords
+ * with a slash or dash before the colon:
+ *   Body / UI: Inter, with fallback: system-ui
+ *   Monospace / Labels: JetBrains Mono
+ *   Display / Buttons: Figma Sans
+ *   Headline - Display: SF Pro Display
+ *
+ * The regex captures the FIRST keyword as the authoritative role; any
+ * additional keywords are absorbed into an optional non-capturing
+ * "qualifier" tail and discarded.
  */
 function matchFontLine(line: string): { role: string; families: string[] } | null {
   const labelMatch = line.match(
-    /^\s*(?:[-*]\s*)?(?:\*\*)?(Headline|Display|Body|UI|Body\s*\/\s*UI|Primary|Sans|Serif|Mono(?:space)?|Code)(?:\*\*)?\s*[:\-]\s*(.+)$/i
+    /^\s*(?:[-*]\s*)?(?:\*\*)?(Headline|Display|Body|UI|Primary|Sans|Serif|Mono(?:space)?|Code)(?:[\s/\-][^*:\n]{0,40})?(?:\*\*)?\s*[:\-]\s*(.+)$/i
   );
   if (!labelMatch) return null;
 
