@@ -10,8 +10,6 @@ description: >-
 url: "https://behl1anmol.github.io"
 baseurl: "/awesome-md-to-pdf"
 
-remote_theme: just-the-docs/just-the-docs
-
 color_scheme: parchment
 
 search_enabled: true
