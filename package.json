@@ -63,7 +63,7 @@
     "highlight.js": "^11.10.0",
     "katex": "^0.16.11",
     "markdown-it": "^13.0.2",
-    "markdown-it-anchor": "^8.6.7",
+    "markdown-it-anchor": "^9.2.0",
     "markdown-it-attrs": "^4.3.1",
     "markdown-it-container": "^4.0.0",
     "markdown-it-emoji": "^2.0.2",
