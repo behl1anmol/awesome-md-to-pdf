@@ -80,7 +80,7 @@ export interface BannerOptions {
 /** Render the full welcome banner to a single string. */
 export function renderBanner(opts: BannerOptions = {}): string {
   const width = opts.width ?? (process.stdout.columns || 100);
-  const plain = Boolean(opts.noColor) || !chalk.supportsColor;
+  const plain = Boolean(opts.noColor) || chalk.level === 0;
   const compact = Boolean(opts.compact) || width < 90;
 
   const paint = (s: string, rgb: RGB): string =>

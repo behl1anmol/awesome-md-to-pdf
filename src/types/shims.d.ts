@@ -39,6 +39,28 @@ declare module 'markdown-it-footnote' {
   export default plugin;
 }
 
+declare module 'markdown-it-emoji' {
+  import type MarkdownIt from 'markdown-it';
+  type EmojiPlugin = (md: MarkdownIt, options?: Record<string, unknown>) => void;
+  const plugin: {
+    bare: EmojiPlugin;
+    full: EmojiPlugin;
+    light: EmojiPlugin;
+  };
+  export default plugin;
+}
+
+declare module 'markdown-it-container' {
+  import type MarkdownIt from 'markdown-it';
+  interface ContainerRenderOptions {
+    render?: (tokens: unknown[], idx: number) => string;
+    validate?: (params: string) => boolean;
+    marker?: string;
+  }
+  const plugin: (md: MarkdownIt, name: string, opts?: ContainerRenderOptions) => void;
+  export default plugin;
+}
+
 declare module 'markdown-it-attrs' {
   import type MarkdownIt from 'markdown-it';
   interface AttrsOptions {
