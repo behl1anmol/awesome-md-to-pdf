@@ -1,5 +1,3 @@
-# NOTE: replace behl1anmol with the GitHub owner/org once the repo is created.
-
 title: awesome-md-to-pdf
 tagline: Awesome editorial Markdown to PDF, Claude-inspired.
 description: >-
@@ -9,6 +7,8 @@ description: >-
 
 url: "https://behl1anmol.github.io"
 baseurl: "/awesome-md-to-pdf"
+
+theme: just-the-docs
 
 color_scheme: parchment
 
@@ -25,7 +25,6 @@ search:
 heading_anchors: true
 permalink: pretty
 
-# Navigation
 aux_links:
   "GitHub":
     - "https://github.com/behl1anmol/awesome-md-to-pdf"
@@ -38,12 +37,11 @@ nav_external_links:
     url: https://getdesign.md
     hide_icon: false
 
-# Footer
 footer_content: >-
   <span>Built with</span>
   <a href="https://just-the-docs.com">Just the Docs</a>
   <span>and styled after the parchment palette of</span>
-  <a href="https://github.com/behl1anmol/awesome-md-to-pdf">awesome-md-to-pdf</a>.
+  <a href="https://github.com/behl1anmol/awesome-md-to-pdf">awesome-md-to-pdf</a>
 last_edit_timestamp: true
 last_edit_time_format: "%b %-d, %Y"
 gh_edit_link: true
@@ -53,7 +51,6 @@ gh_edit_branch: main
 gh_edit_source: docs
 gh_edit_view_mode: tree
 
-# Callouts (Claude-style admonitions)
 callouts_level: quiet
 callouts:
   note:
@@ -69,16 +66,13 @@ callouts:
     title: Danger
     color: red
 
-# Mermaid diagram support (Just the Docs built-in)
 mermaid:
   version: "10.9.1"
 
 plugins:
-  - jekyll-remote-theme
   - jekyll-seo-tag
   - jekyll-sitemap
 
-# SEO defaults
 defaults:
   - scope:
       path: ""
@@ -86,7 +80,6 @@ defaults:
       image: /assets/images/social-card.png
       layout: default
 
-# Exclude things that shouldn't be in the built site
 exclude:
   - Gemfile
   - Gemfile.lock
