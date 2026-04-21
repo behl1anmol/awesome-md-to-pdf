@@ -22,3 +22,4 @@ Thumbs.db
 # Misc
 .env
 .env.local
+/_site/
