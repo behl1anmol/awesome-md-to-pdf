@@ -61,7 +61,7 @@ export function createMarkdown(opts: CreateMarkdownOptions = {}): MarkdownIt {
 
   md.use(taskLists, { label: true, labelAfter: true });
   md.use(footnote);
-  md.use(emoji);
+  md.use(emoji.full);
   md.use(attrs);
   md.use(katex, { throwOnError: false, errorColor: '#b53333' });
 

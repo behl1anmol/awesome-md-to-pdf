@@ -3,6 +3,9 @@
 // Loaded automatically by Just the Docs after the chosen color scheme.
 // ---------------------------------------------------------------------------
 
+// Dark scheme doesn't define this token; provide a safe fallback.
+$heading-font-family: $body-font-family !default;
+
 // Serif headings (the scheme already sets $heading-font-family but we force the
 // weight + letter-spacing so things feel literary rather than marketing-y).
 .main-content {

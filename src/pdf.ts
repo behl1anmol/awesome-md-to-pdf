@@ -73,8 +73,9 @@ export class PdfRenderer {
     );
 
     try {
-      page.on('pageerror', (err: Error) => {
-        console.error(`[pdf] pageerror: ${err.message}`);
+      page.on('pageerror', (err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[pdf] pageerror: ${message}`);
       });
       page.on('requestfailed', (req) => {
         const failure = req.failure();

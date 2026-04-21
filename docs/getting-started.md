@@ -16,7 +16,7 @@ nav_order: 2
 
 ## Requirements
 
-- **Node.js 18 or newer** (`node --version`). The CLI targets `>=18`.
+- **Node.js 24 or newer** (`node --version`). The CLI targets `>=24`.
 - **~200 MB of free disk** for the bundled Chromium that Puppeteer downloads
   on first install. You can skip that download behind a corporate proxy --
   see [Troubleshooting](./troubleshooting#puppeteer-fails-to-download-chromium).
