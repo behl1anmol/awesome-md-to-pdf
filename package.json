@@ -1,6 +1,6 @@
 {
   "name": "awesome-md-to-pdf",
-  "version": "0.1.2-beta.0",
+  "version": "0.1.2-beta.1",
   "description": "Awesome editorial Markdown → PDF. Convert Markdown files in a directory to beautifully styled PDFs (Claude/Anthropic-inspired design) with mermaid, code highlighting, math, and more.",
   "bin": {
     "awesome-md-to-pdf": "bin/awesome-md-to-pdf.js",
