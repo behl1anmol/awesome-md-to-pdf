@@ -42,13 +42,13 @@
   },
   "license": "MIT",
   "author": "awesome-md-to-pdf contributors",
-  "homepage": "https://<owner>.github.io/awesome-md-to-pdf",
+  "homepage": "https://behl1anmol.github.io/awesome-md-to-pdf",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/<owner>/awesome-md-to-pdf.git"
+    "url": "git+https://github.com/behl1anmol/awesome-md-to-pdf.git"
   },
   "bugs": {
-    "url": "https://github.com/<owner>/awesome-md-to-pdf/issues"
+    "url": "https://github.com/behl1anmol/awesome-md-to-pdf/issues"
   },
   "publishConfig": {
     "access": "public",
