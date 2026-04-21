@@ -18,6 +18,8 @@
     "build": "tsc && node scripts/copy-assets.js",
     "clean": "node scripts/clean.js",
     "rebuild": "npm run clean && npm run build",
+    "version:beta": "npm version prerelease --preid=beta",
+    "version:stable": "npm version patch",
     "prestart": "npm run build",
     "start": "node bin/md-to-pdf.js",
     "typecheck": "tsc --noEmit",

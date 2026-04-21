@@ -1,6 +1,8 @@
 name: Publish to npm
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -26,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
 
@@ -48,6 +50,20 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve npm dist-tag
+        id: npm_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          # Any semver prerelease (e.g. 1.2.3-beta.1, 1.2.3-rc.0) goes to beta.
+          if [[ "$PKG_VERSION" == *-* ]]; then
+            echo "tag=beta" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+          echo "publishing $PKG_VERSION with npm tag $(cat "$GITHUB_OUTPUT" | cut -d= -f2)"
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -55,6 +71,6 @@ jobs:
         run: npm run build
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish --provenance --access public --tag "${{ steps.npm_tag.outputs.tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
