@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Runtime & tooling
 
-- Node `>=18` (see `engines` in [package.json](package.json)).
+- Node `>=24` (see `engines` in [package.json](package.json)).
 - TypeScript source under [src/](src) is compiled by `tsc` to CommonJS in `dist/`. Source maps are off.
 - 2-space indent. Single quotes. Trailing newline on every file. LF line endings.
 - All entry points are loaded from `dist/` by the shims in `bin/`; never hand-import `src/` files from `bin/` or `scripts/`.

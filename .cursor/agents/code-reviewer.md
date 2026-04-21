@@ -33,7 +33,7 @@ See [review-a-pr.md](.cursor/instructions/review-a-pr.md). Summary:
 - `npm run typecheck` green.
 - `npm run build` green; no `dist/` committed.
 - `npm run demo:light` + `npm run demo:dark` both succeed.
-- CI matrix green (ubuntu 18/20/22, windows 20).
+- CI matrix green (ubuntu 24, windows 24).
 - No stray `console.*` outside the sanctioned list in [20-logger-and-console.mdc](.cursor/rules/20-logger-and-console.mdc).
 - No hardcoded colors/fonts in components — everything via CSS custom properties.
 - No new dependency without justification.

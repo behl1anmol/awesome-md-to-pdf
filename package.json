@@ -1,6 +1,6 @@
 {
   "name": "awesome-md-to-pdf",
-  "version": "0.1.1",
+  "version": "0.1.2-beta.0",
   "description": "Awesome editorial Markdown → PDF. Convert Markdown files in a directory to beautifully styled PDFs (Claude/Anthropic-inspired design) with mermaid, code highlighting, math, and more.",
   "bin": {
     "awesome-md-to-pdf": "bin/awesome-md-to-pdf.js",
@@ -18,6 +18,8 @@
     "build": "tsc && node scripts/copy-assets.js",
     "clean": "node scripts/clean.js",
     "rebuild": "npm run clean && npm run build",
+    "version:beta": "npm version prerelease --preid=beta",
+    "version:stable": "npm version patch",
     "prestart": "npm run build",
     "start": "node bin/md-to-pdf.js",
     "typecheck": "tsc --noEmit",
@@ -40,13 +42,13 @@
   },
   "license": "MIT",
   "author": "awesome-md-to-pdf contributors",
-  "homepage": "https://<owner>.github.io/awesome-md-to-pdf",
+  "homepage": "https://behl1anmol.github.io/awesome-md-to-pdf",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/<owner>/awesome-md-to-pdf.git"
+    "url": "git+https://github.com/behl1anmol/awesome-md-to-pdf.git"
   },
   "bugs": {
-    "url": "https://github.com/<owner>/awesome-md-to-pdf/issues"
+    "url": "https://github.com/behl1anmol/awesome-md-to-pdf/issues"
   },
   "publishConfig": {
     "access": "public",
