@@ -18,7 +18,7 @@ Full architectural overview: [docs/architecture.md](docs/architecture.md).
 
 All rules live under [.cursor/rules/](.cursor/rules) and auto-apply via glob. The load-bearing ones:
 
-- **[00-core-conventions.mdc](.cursor/rules/00-core-conventions.mdc)** — Node >=18, 2-space indent, single quotes, no emoji, no narrating comments, no raw `console.log` outside [src/logger.ts](src/logger.ts).
+- **[00-core-conventions.mdc](.cursor/rules/00-core-conventions.mdc)** — Node >=24, 2-space indent, single quotes, no emoji, no narrating comments, no raw `console.log` outside [src/logger.ts](src/logger.ts).
 - **[40-pdf-pipeline-invariants.mdc](.cursor/rules/40-pdf-pipeline-invariants.mdc)** — do not change `page.pdf` options; navigation must stay on `file://`; await `window.__mermaidDone` + `document.fonts.ready` + double rAF before rendering.
 - **[30-design-tokens-and-css.mdc](.cursor/rules/30-design-tokens-and-css.mdc)** — every color/font/spacing comes from a CSS custom property declared in [src/themes/tokens.css](src/themes/tokens.css). Never hardcode.
 - **[50-cli-and-repl.mdc](.cursor/rules/50-cli-and-repl.mdc)** — CLI flags traverse `RawCliOptions -> ConvertOptions -> Session`. Slash commands update `COMMAND_META` in [src/repl.ts](src/repl.ts) AND docs/chat-mode.md.

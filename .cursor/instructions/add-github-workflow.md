@@ -25,7 +25,7 @@ Inspect [.github/workflows/ci.yml](.github/workflows/ci.yml), [.github/workflows
    - `schedule:` only with explicit approval — cron workflows accumulate minutes.
 3. Declare `env: PUPPETEER_SKIP_DOWNLOAD: "1"` at the workflow level.
 4. Set the minimum `permissions:` block. Default to `contents: read`.
-5. Use a matrix only when it adds value. The CI matrix is `ubuntu × {node 18, 20, 22} + windows × node 20`. Do not add macOS unless there's a macOS-specific bug to guard.
+5. Use a matrix only when it adds value. The CI matrix is `ubuntu × node 24 + windows × node 24`. Do not add macOS unless there's a macOS-specific bug to guard.
 6. Steps:
    - Checkout, setup-node (with cache), `npm ci`, then the actual work.
    - If the workflow runs user-supplied shell, `set -euo pipefail` in bash (see `publish.yml`).

@@ -1,6 +1,6 @@
 ---
 name: build-publish-knowledge
-description: End-to-end knowledge of the build toolchain and release flow. Covers tsconfig, copy-assets.js, bin shims, dist layout, npm script graph, CI matrix (ubuntu Node 18/20/22 + windows Node 20), PUPPETEER_SKIP_DOWNLOAD hygiene, publish.yml tag-version parity, npm provenance via OIDC, Pages workflow (Jekyll from docs/), Dependabot, and the engines/files manifest. Use when editing build scripts, CI workflows, the release pipeline, or touching docs publishing.
+description: End-to-end knowledge of the build toolchain and release flow. Covers tsconfig, copy-assets.js, bin shims, dist layout, npm script graph, CI matrix (ubuntu Node 24 + windows Node 24), PUPPETEER_SKIP_DOWNLOAD hygiene, publish.yml tag-version parity, npm provenance via OIDC, Pages workflow (Jekyll from docs/), Dependabot, and the engines/files manifest. Use when editing build scripts, CI workflows, the release pipeline, or touching docs publishing.
 triggers: tsc, build, copy-assets, dist, bin, package.json files, engines, CI, GitHub Actions, ci.yml, pages.yml, publish.yml, PUPPETEER_SKIP_DOWNLOAD, npm publish, provenance, OIDC, Dependabot, Jekyll, GitHub Pages, release tag, version bump, changelog, npm ci, typecheck, smoke test, @vercel/ncc, bundler
 ---
 
@@ -80,7 +80,7 @@ Both are listed in the `bin` map of [package.json](package.json). If you rename 
 
 - Concurrency group: `ci-${{ github.ref }}` with `cancel-in-progress: true` — a new push cancels the old run.
 - Workflow-level env: `PUPPETEER_SKIP_DOWNLOAD: "1"`.
-- Matrix: ubuntu × {18, 20, 22} + windows × 20. `fail-fast: false` so every cell reports independently.
+- Matrix: ubuntu × 24 + windows × 24. `fail-fast: false` so every cell reports independently.
 - Steps: checkout, setup-node (with `cache: npm`), `npm ci`, `npm run typecheck`, `npm run build`, `node bin/awesome-md-to-pdf.js --help`.
 
 The `--help` smoke test exercises the dist + asset copy + bin shim in one go. A regression in any of the three fails CI here.
@@ -122,7 +122,7 @@ Release flow end-to-end: see [.cursor/instructions/release-and-publish.md](.curs
 
 ## Engines & platform
 
-- `"engines": { "node": ">=18" }` in [package.json](package.json). 18 is the minimum; CI tests 18/20/22.
+- `"engines": { "node": ">=24" }` in [package.json](package.json). 24 is the minimum; CI tests 24 on ubuntu/windows.
 - Windows + Linux are first-class. macOS is untested in CI but should work (Puppeteer fully supports it).
 
 ## Common tasks

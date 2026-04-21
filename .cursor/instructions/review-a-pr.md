@@ -11,7 +11,7 @@ Checklist the `code-reviewer` runs against every change before approval.
 1. `npm run typecheck` passes locally on the PR branch. No TypeScript errors.
 2. `npm run build` succeeds. `dist/` is NOT committed.
 3. `npm run demo:light` and `npm run demo:dark` both succeed. No new warnings on stderr.
-4. CI is green across the full matrix (ubuntu Node 18/20/22, windows Node 20).
+4. CI is green across the full matrix (ubuntu Node 24, windows Node 24).
 5. No stray `console.*` calls outside the sanctioned list in [20-logger-and-console.mdc](.cursor/rules/20-logger-and-console.mdc).
 6. No hardcoded colors, fonts, or sizes in component-level CSS — everything routes through CSS custom properties.
 7. No new dependency added without justification (size, provenance, maintenance).

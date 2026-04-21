@@ -28,7 +28,7 @@ The launch args in [src/pdf.ts](src/pdf.ts) are intentional:
 - `--disable-dev-shm-usage` — avoids `/dev/shm` exhaustion in containers.
 - `--font-render-hinting=none` — stabilizes typography between hosts.
 
-Do not remove them unless you've verified the change on the full CI matrix (ubuntu + windows, Node 18/20/22).
+Do not remove them unless you've verified the change on the full CI matrix (ubuntu + windows, Node 24).
 
 ## Script surface
 
