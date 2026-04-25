@@ -28,8 +28,10 @@ export interface ConvertOptions {
   showLinkUrls: boolean;
   concurrency: number;
   accent?: string | null;
-  /** Parsed DESIGN.md tokens; null/undefined uses the Claude baseline. */
-  design?: DesignTokens | null;
+  /** Parsed light-mode DESIGN.md tokens; null/undefined uses the Claude baseline. */
+  designLight?: DesignTokens | null;
+  /** Parsed dark-mode DESIGN.md tokens; null/undefined uses the Claude baseline. */
+  designDark?: DesignTokens | null;
   /** When true (default), use the progress-bar UI; when false, use ora spinners. */
   useProgressBars?: boolean;
 }
@@ -47,7 +49,8 @@ interface PerFileContext {
   footerText?: string;
   showLinkUrls: boolean;
   accent?: string | null;
-  design?: DesignTokens | null;
+  designLight?: DesignTokens | null;
+  designDark?: DesignTokens | null;
   renderer: PdfRenderer;
   progress?: ProgressReporter;
 }
@@ -125,7 +128,8 @@ async function convertOne(ctx: PerFileContext): Promise<ConvertedItem> {
     subtitle: '',
     showLinkUrls: ctx.showLinkUrls,
     accent: ctx.accent,
-    design: ctx.design,
+    designLight: ctx.designLight,
+    designDark: ctx.designDark,
     pageNumbers: ctx.pageNumbers,
     headerText: resolveHeaderTokens(ctx.headerText, path.basename(ctx.inputFile), title),
     footerText: resolveHeaderTokens(ctx.footerText, path.basename(ctx.inputFile), title),
@@ -212,7 +216,8 @@ async function convertMerged(ctx: MergeContext): Promise<ConvertedItem> {
     fileList,
     showLinkUrls: ctx.showLinkUrls,
     accent: ctx.accent,
-    design: ctx.design,
+    designLight: ctx.designLight,
+    designDark: ctx.designDark,
     pageNumbers: ctx.pageNumbers,
     headerText: resolveHeaderTokens(ctx.headerText, '', docTitle),
     footerText: resolveHeaderTokens(ctx.footerText, '', docTitle),
@@ -318,7 +323,8 @@ export async function convert(options: ConvertOptions): Promise<number> {
     showLinkUrls,
     concurrency,
     accent,
-    design,
+    designLight,
+    designDark,
     useProgressBars,
   } = options;
 
@@ -343,7 +349,7 @@ export async function convert(options: ConvertOptions): Promise<number> {
   );
   logger.info(
     `Mode: ${mode}   Format: ${format}   Concurrency: ${concurrency}` +
-      (design ? `   Design: ${design.name}` : '')
+      buildDesignSummary(designLight, designDark)
   );
   console.log('');
 
@@ -382,7 +388,8 @@ export async function convert(options: ConvertOptions): Promise<number> {
           footerText,
           showLinkUrls,
           accent,
-          design,
+          designLight,
+          designDark,
           renderer,
           progress: progress ?? undefined,
         });
@@ -420,7 +427,8 @@ export async function convert(options: ConvertOptions): Promise<number> {
               footerText,
               showLinkUrls,
               accent,
-              design,
+              designLight,
+              designDark,
               renderer,
               progress: progress ?? undefined,
             });
@@ -456,4 +464,13 @@ export async function convert(options: ConvertOptions): Promise<number> {
   } finally {
     await renderer.close();
   }
+}
+
+function buildDesignSummary(
+  designLight: DesignTokens | null | undefined,
+  designDark: DesignTokens | null | undefined
+): string {
+  const light = designLight ? designLight.name : 'claude';
+  const dark = designDark ? designDark.name : 'claude';
+  return `   Design(light): ${light}   Design(dark): ${dark}`;
 }

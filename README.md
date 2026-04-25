@@ -17,7 +17,7 @@
 
 ## Features
 
-- **Dynamic design pipeline** — drop in any spec-compliant `DESIGN.md` (see [the spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)) and the PDF re-themes itself: colors, typography, rounded, spacing, and components all flow from the YAML frontmatter. The Claude baseline stays as the default when no `--design` is passed.
+- **Dynamic design pipeline** — drop in spec-compliant `DESIGN.md` files (see [the spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)) for light and dark modes and the PDF re-themes itself: colors, typography, rounded, spacing, and components all flow from YAML frontmatter. Claude baselines stay as defaults when no mode-specific design is passed.
 - **Interactive chat mode** — run `awesome-md-to-pdf` with no args and you land in a slash-command REPL (`/help`, `/convert`, `/design`, `/mode`, ...) with a live progress bar for every conversion.
 - **Fancy 3D welcome banner** — gradient ANSI Shadow `MD-TO-PDF` wordmark with a letter-spaced `A W E S O M E` eyebrow and an asymmetric origami-style icon, all colored with 24-bit true-color.
 - **Editorial base design** — warm Parchment canvas, serif headlines (weight 500), sans body at 1.60 line-height, terracotta brand accent, ring-based depth. Every gray is warm-toned.
@@ -98,7 +98,10 @@ Type `/help` for the full command table. Highlights:
 |---|---|
 | `/help` | Show the command table. |
 | `/convert [path]` | Convert a file or directory. Defaults to the current input dir. |
-| `/design <path>` | Load a DESIGN.md from anywhere on disk. `/design reset` reverts. `/design info` previews palette + fonts. |
+| `/design light <path>` | Load the light-mode DESIGN.md from disk. |
+| `/design dark <path>` | Load the dark-mode DESIGN.md from disk. |
+| `/design reset <light\|dark\|all>` | Reset one or both mode-specific designs. |
+| `/design info <light\|dark\|all>` | Preview parsed token info for one or both mode-specific designs. |
 | `/mode [light\|dark]` | Set the render mode. No arg toggles. |
 | `/input <dir>` | Set the working input directory. |
 | `/output <dir>` | Set the output directory. |
@@ -126,7 +129,8 @@ awesome-md-to-pdf <inputDir> [options]
 | `-r, --recursive` | Recurse into subdirectories | `false` |
 | `-s, --single-file` | Merge all `.md` files into one PDF | `false` |
 | `-m, --mode <mode>` | `light` or `dark` | prompt |
-| `--design <path>` | Path to a `DESIGN.md` file or folder | bundled Claude |
+| `--design-light <path>` | Path to a light-mode `DESIGN.md` file or folder | bundled Claude light |
+| `--design-dark <path>` | Path to a dark-mode `DESIGN.md` file or folder | bundled Claude dark |
 | `--accent <hex>` | Override the brand accent | design default |
 | `-f, --format <fmt>` | `A4` / `Letter` / `Legal` | `A4` |
 | `--toc` | Auto-generate a table of contents | `false` |
@@ -155,8 +159,8 @@ awesome-md-to-pdf docs -r --toc --cover --mode dark
 # Merge everything into a single report
 awesome-md-to-pdf docs -s --toc --cover --mode light -o build
 
-# Theme the PDF with Linear's design
-awesome-md-to-pdf docs --design ./designs/linear.md --mode dark
+# Theme the PDF with mode-specific Linear designs
+awesome-md-to-pdf docs --design-light ./designs/linear-light.md --design-dark ./designs/linear-dark.md --mode dark
 
 # Watch mode
 awesome-md-to-pdf docs --mode light -w
@@ -174,13 +178,14 @@ block declaring `colors`, `typography`, `rounded`, `spacing`, and
 To use one:
 
 ```bash
-awesome-md-to-pdf docs --design designs/linear.md --mode dark
+awesome-md-to-pdf docs --design-light designs/linear-light.md --design-dark designs/linear-dark.md --mode dark
 ```
 
 Or from inside chat:
 
 ```text
-/design designs/linear.md
+/design light designs/linear-light.md
+/design dark designs/linear-dark.md
 /convert docs
 ```
 
@@ -247,7 +252,7 @@ npm run rebuild     # clean + build
 
 The default (Claude baseline) produces PDFs styled after the Anthropic product aesthetic: warm parchment canvas, serif headlines at weight 500 for a literary cadence, exclusively warm-toned neutrals. Depth comes from ring shadows and whisper-soft elevations — never heavy drop shadows. Links are highlighted in terracotta. See [src/themes/tokens.css](src/themes/tokens.css) for the full palette.
 
-When `--design` is supplied, the parsed tokens override this baseline as CSS custom properties (`:root { --brand: ...; }` / `[data-mode="dark"] { --bg-page: ...; }`). Any unparsed slot transparently inherits the Claude defaults.
+When `--design-light` and/or `--design-dark` are supplied, parsed tokens override the corresponding mode baseline as CSS custom properties (`:root { ... }` for light and `[data-mode="dark"] { ... }` for dark). Any unparsed slot transparently inherits the Claude defaults.
 
 ## Troubleshooting
 

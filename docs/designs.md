@@ -80,19 +80,20 @@ Inter at 400 for body, 700 for headlines.
 Run it:
 
 ```bash
-awesome-md-to-pdf docs --design my-brand.md
+awesome-md-to-pdf docs --design-light my-brand-light.md --design-dark my-brand-dark.md
 ```
 
 Or inside [chat mode](./chat-mode):
 
 ```text
-/design my-brand.md
+/design light my-brand-light.md
+/design dark my-brand-dark.md
 /convert docs
 ```
 
 ## The Claude baseline
 
-No `--design` flag? awesome-md-to-pdf ships a spec-compliant Claude baseline
+No `--design-light`/`--design-dark` flags? awesome-md-to-pdf ships spec-compliant Claude baselines
 that defines every token group (`colors`, `typography`, `rounded`, `spacing`,
 `components`). Any key a user's `DESIGN.md` omits falls back to the baseline
 via the default values declared in
@@ -221,8 +222,9 @@ loaded.
 ## Inspecting a parsed design
 
 ```text
-/design designs/my-brand.md
-/design info
+/design light designs/my-brand-light.md
+/design dark designs/my-brand-dark.md
+/design info all
 ```
 
 prints the full parsed token set -- colors, typography, rounded, spacing,

@@ -82,6 +82,6 @@ editorial-quality PDF under `pdf/hello.pdf`.
 
 ## Next steps
 
-- Try a non-default design: `awesome-md-to-pdf notes --design designs/linear.md --mode dark`.
+- Try non-default mode-specific designs: `awesome-md-to-pdf notes --design-light designs/linear-light.md --design-dark designs/linear-dark.md --mode dark`.
 - Author your own `DESIGN.md` following Google's [DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md) -- see [Designs](./designs).
 - Explore the [full CLI reference](./cli-reference).

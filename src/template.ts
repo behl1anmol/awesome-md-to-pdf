@@ -65,8 +65,10 @@ export interface BuildHtmlOptions {
   showLinkUrls?: boolean;
   /** Override the Terracotta brand accent (hex). Shortcut for a design override of just --brand. */
   accent?: string | null;
-  /** A parsed DESIGN.md token set; any slot not set falls back to the Claude baseline. */
-  design?: DesignTokens | null;
+  /** Parsed light-mode DESIGN.md tokens; any slot not set falls back to the Claude baseline. */
+  designLight?: DesignTokens | null;
+  /** Parsed dark-mode DESIGN.md tokens; any slot not set falls back to the Claude baseline. */
+  designDark?: DesignTokens | null;
   /** Whether to show page numbers via @page margin boxes. */
   pageNumbers?: boolean;
   /** Custom header text (adds a band). */
@@ -90,7 +92,8 @@ export function buildHtml(opts: BuildHtmlOptions): string {
     fileList = [],
     showLinkUrls = false,
     accent,
-    design,
+    designLight,
+    designDark,
   } = opts;
 
   const tokens = readCss('tokens.css');
@@ -103,13 +106,14 @@ export function buildHtml(opts: BuildHtmlOptions): string {
   const printCss = readCss('print.css');
   const katexCss = readKatexCss();
 
-  const mermaidScript = buildMermaidScript(mode, design ?? null);
+  const activeDesign = mode === 'dark' ? (designDark ?? null) : (designLight ?? null);
+  const mermaidScript = buildMermaidScript(mode, activeDesign);
 
   const accentOverride = accent
     ? `:root { --brand: ${accent}; --brand-soft: ${accent}; }`
     : '';
 
-  const designOverride = design ? buildDesignOverride(design) : '';
+  const designOverride = buildDesignOverrides({ designLight, designDark });
 
   const bodyClass = ['markdown-body', showLinkUrls ? 'show-link-urls' : '']
     .filter(Boolean)
@@ -258,7 +262,21 @@ ${pageNumbers || footerText ? '.page { padding-bottom: 10mm; }' : ''}
  * token names (primary/secondary/tertiary/neutral/surface/on-surface/outline)
  * must still drive a PDF theme.
  */
-function buildDesignOverride(design: DesignTokens): string {
+function buildDesignOverrides(opts: {
+  designLight?: DesignTokens | null;
+  designDark?: DesignTokens | null;
+}): string {
+  const blocks: string[] = [];
+  if (opts.designLight) {
+    blocks.push(buildDesignOverride(':root', opts.designLight));
+  }
+  if (opts.designDark) {
+    blocks.push(buildDesignOverride('[data-mode="dark"]', opts.designDark));
+  }
+  return blocks.join('\n');
+}
+
+function buildDesignOverride(selector: string, design: DesignTokens): string {
   const decls: string[] = [];
 
   // --- colors ---------------------------------------------------------------
@@ -383,7 +401,7 @@ function buildDesignOverride(design: DesignTokens): string {
   }
 
   if (decls.length === 0) return '';
-  return `:root {\n  ${decls.join('\n  ')}\n}`;
+  return `${selector} {\n  ${decls.join('\n  ')}\n}`;
 }
 
 /**

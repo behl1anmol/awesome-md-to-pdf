@@ -84,7 +84,7 @@ async function main() {
     const code = await spawnCli(cliPath, [
       stageDir,
       '--output', pdfDir,
-      '--design', fx.design,
+      '--design-light', fx.design,
       '--mode', 'light',
       '--no-banner',
     ]);

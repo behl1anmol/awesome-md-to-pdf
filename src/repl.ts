@@ -51,7 +51,8 @@ interface Session {
   showLinkUrls: boolean;
   concurrency: number;
   accent: string | null;
-  design: DesignTokens | null;
+  designLight: DesignTokens | null;
+  designDark: DesignTokens | null;
   header?: string;
   footer?: string;
 }
@@ -70,7 +71,8 @@ function defaultSession(overrides: Partial<Session> = {}): Session {
     showLinkUrls: false,
     concurrency: 1,
     accent: null,
-    design: null,
+    designLight: null,
+    designDark: null,
     ...overrides,
   };
 }
@@ -90,7 +92,12 @@ interface CommandMeta {
 const COMMAND_META: CommandMeta[] = [
   { name: 'help', argHint: '', description: 'Show this help panel.', group: 'primary' },
   { name: 'convert', argHint: '[path]', description: 'Convert a file or directory (defaults to current input).', group: 'primary' },
-  { name: 'design', argHint: '<path|reset|info>', description: 'Load a DESIGN.md, reset to Claude, or preview the palette.', group: 'primary' },
+  {
+    name: 'design',
+    argHint: '<light|dark> <path> | reset <light|dark|all> | info <light|dark|all>',
+    description: 'Set, reset, or inspect mode-specific DESIGN.md files.',
+    group: 'primary',
+  },
   { name: 'mode', argHint: '[light|dark]', description: 'Set the render mode. No arg toggles.', group: 'primary' },
 
   { name: 'input', argHint: '<dir>', description: 'Set the working input directory.', group: 'session' },
@@ -847,7 +854,8 @@ async function cmdConvert(args: string[], session: Session): Promise<void> {
     showLinkUrls: session.showLinkUrls,
     concurrency: session.concurrency,
     accent: session.accent,
-    design: session.design,
+    designLight: session.designLight,
+    designDark: session.designDark,
     useProgressBars: true,
   };
 
@@ -885,7 +893,8 @@ async function convertSingleFile(absFile: string, session: Session): Promise<voi
       showLinkUrls: session.showLinkUrls,
       concurrency: 1,
       accent: session.accent,
-      design: session.design,
+      designLight: session.designLight,
+      designDark: session.designDark,
       useProgressBars: true,
     };
     await convert(options);
@@ -897,39 +906,60 @@ async function convertSingleFile(absFile: string, session: Session): Promise<voi
 
 function cmdDesign(args: string[], session: Session): void {
   if (!args.length) {
-    const lines: string[] = [];
-    if (session.design) {
-      lines.push(tc.bodyBold(`Active: ${session.design.name}`));
-      lines.push(tc.meta(`Source: ${session.design.source}`));
-    } else {
-      lines.push(tc.body('Using built-in Claude baseline.'));
-    }
-    lines.push('');
-    lines.push(tc.body('DESIGN.md spec: ') + tc.link('https://github.com/google/design.md'));
+    const lines = [
+      tc.body('Usage:'),
+      tc.brand('/design light <path>'),
+      tc.brand('/design dark <path>'),
+      tc.brand('/design reset <light|dark|all>'),
+      tc.brand('/design info <light|dark|all>'),
+    ];
     console.log(boxWithBorder('Design', lines.join('\n'), session));
     return;
   }
 
-  const sub = args[0];
-  if (sub === 'reset') {
-    session.design = null;
-    logger.success('Reverted to built-in Claude baseline.');
-    return;
-  }
-  if (sub === 'info') {
-    if (!session.design) {
-      console.log(boxWithBorder('Design', tc.body('Using built-in Claude baseline.'), session));
+  const action = args[0].toLowerCase();
+  if (action === 'reset') {
+    const target = (args[1] ?? 'all').toLowerCase();
+    if (target !== 'light' && target !== 'dark' && target !== 'all') {
+      logger.error('Usage: /design reset <light|dark|all>');
       return;
     }
-    console.log(boxWithBorder(`Design · ${session.design.name}`, describeTokens(session.design), session));
+    if (target === 'light' || target === 'all') session.designLight = null;
+    if (target === 'dark' || target === 'all') session.designDark = null;
+    logger.success(`Design reset: ${target}.`);
     return;
   }
 
-  const target = args.join(' ').replace(/^["']|["']$/g, '');
+  if (action === 'info') {
+    const target = (args[1] ?? 'all').toLowerCase();
+    if (target !== 'light' && target !== 'dark' && target !== 'all') {
+      logger.error('Usage: /design info <light|dark|all>');
+      return;
+    }
+    if (target === 'light' || target === 'all') {
+      printModeDesignInfo('light', session.designLight, session);
+    }
+    if (target === 'dark' || target === 'all') {
+      printModeDesignInfo('dark', session.designDark, session);
+    }
+    return;
+  }
+
+  if (action !== 'light' && action !== 'dark') {
+    logger.error('Usage: /design <light|dark> <path>');
+    return;
+  }
+
+  const targetPath = args.slice(1).join(' ').replace(/^["']|["']$/g, '');
+  if (!targetPath) {
+    logger.error('Usage: /design <light|dark> <path>');
+    return;
+  }
   try {
-    const tokens = parseDesignMd(target);
-    session.design = tokens;
-    logger.success(`Loaded design: ${tokens.name} (${path.relative(process.cwd(), tokens.source)})`);
+    const tokens = parseDesignMd(targetPath);
+    if (action === 'light') session.designLight = tokens;
+    else session.designDark = tokens;
+    logger.success(`Loaded ${action} design: ${tokens.name} (${path.relative(process.cwd(), tokens.source)})`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error(message);
@@ -1034,11 +1064,14 @@ async function cmdLs(_args: string[], session: Session): Promise<void> {
 }
 
 function cmdStatus(_args: string[], session: Session): void {
+  const lightDesign = session.designLight ? session.designLight.name : 'claude (baseline)';
+  const darkDesign = session.designDark ? session.designDark.name : 'claude (baseline)';
   const rows: Array<[string, string]> = [
     ['input', session.inputDir],
     ['output', session.outputDir],
     ['mode', session.mode],
-    ['design', session.design ? session.design.name : 'claude (baseline)'],
+    ['design-light', lightDesign],
+    ['design-dark', darkDesign],
     ['format', session.format],
     ['toc', String(session.toc)],
     ['cover', String(session.cover)],
@@ -1052,6 +1085,18 @@ function cmdStatus(_args: string[], session: Session): void {
     .map(([k, v]) => tc.meta(k.padEnd(14)) + tc.body(v))
     .join('\n');
   console.log(boxWithBorder('Session', body, session));
+}
+
+function printModeDesignInfo(
+  mode: 'light' | 'dark',
+  design: DesignTokens | null,
+  session: Session
+): void {
+  if (!design) {
+    console.log(boxWithBorder(`Design (${mode})`, tc.body('Using built-in Claude baseline.'), session));
+    return;
+  }
+  console.log(boxWithBorder(`Design (${mode}) · ${design.name}`, describeTokens(design), session));
 }
 
 function cmdOpen(_args: string[], session: Session): void {

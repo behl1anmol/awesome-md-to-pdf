@@ -1,6 +1,6 @@
 # Designs
 
-Drop any `DESIGN.md` into this folder (or point `--design` at a path anywhere on disk)
+Drop any `DESIGN.md` into this folder (or point `--design-light` / `--design-dark` at paths anywhere on disk)
 and awesome-md-to-pdf will render your PDFs in that visual system.
 
 awesome-md-to-pdf follows Google's [DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)
@@ -122,6 +122,6 @@ paths.
 
 ## Bundled designs
 
-- `claude.md` -- the Claude baseline, used automatically when no `--design` is
+- `claude.md` -- the Claude baseline, used automatically when no mode-specific design flag is
   passed.
 - Additional fixtures live in `../../samples/design-fixtures/`.

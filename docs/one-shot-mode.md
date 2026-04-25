@@ -48,10 +48,13 @@ awesome-md-to-pdf docs -r --toc --cover --mode dark
 awesome-md-to-pdf docs -s --toc --cover --mode light -o build
 ```
 
-### Theme with a specific design
+### Theme with mode-specific designs
 
 ```bash
-awesome-md-to-pdf docs --design designs/linear.md --mode dark
+awesome-md-to-pdf docs \
+  --design-light designs/linear-light.md \
+  --design-dark designs/linear-dark.md \
+  --mode dark
 ```
 
 ### Override just the accent

@@ -60,7 +60,10 @@ Type `/help` inside the REPL for the latest table. Highlights:
 |---|---|
 | `/help` | Show the command table. |
 | `/convert [path]` | Convert a file or directory. Defaults to the current input dir. |
-| `/design <path>` | Load a `DESIGN.md` from disk. `/design reset` reverts. `/design info` previews palette + fonts. |
+| `/design light <path>` | Load the light-mode `DESIGN.md` from disk. |
+| `/design dark <path>` | Load the dark-mode `DESIGN.md` from disk. |
+| `/design reset <light\|dark\|all>` | Reset one or both mode-specific designs to Claude baseline. |
+| `/design info <light\|dark\|all>` | Print parsed token info for one or both mode-specific designs. |
 | `/mode [light\|dark]` | Set the render mode. No argument toggles. |
 | `/input <dir>` | Set the working input directory. |
 | `/output <dir>` | Set the output directory. |
@@ -82,7 +85,8 @@ A typical chat session:
 
 ```text
 [◈ · light] › /input notes
-[◈ · light] › /design designs/linear.md
+[◈ · light] › /design light designs/linear-light.md
+[◈ · light] › /design dark designs/linear-dark.md
 [◈ · light] › /mode dark
 [◈ · dark] › /toc
 [◈ · dark] › /cover
