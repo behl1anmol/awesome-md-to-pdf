@@ -28,7 +28,8 @@ interface RawCliOptions {
   singleFile?: boolean;
   mode?: string;
   accent?: string;
-  design?: string;
+  designLight?: string;
+  designDark?: string;
   format: string;
   toc?: boolean;
   cover?: boolean;
@@ -72,18 +73,27 @@ function printBanner(): void {
   console.log(renderBanner());
 }
 
-function loadDesign(designPath: string | undefined): DesignTokens | null {
+function loadDesign(flagName: '--design-light' | '--design-dark', designPath: string | undefined): DesignTokens | null {
   if (!designPath) return null;
   try {
     return parseDesignMd(designPath);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.error(`Could not load --design: ${message}`);
+    logger.error(`Could not load ${flagName}: ${message}`);
     process.exit(2);
   }
 }
 
+function hasLegacyDesignFlag(argv: string[]): boolean {
+  return argv.some((arg) => arg === '--design' || arg.startsWith('--design='));
+}
+
 export async function run(argv: string[]): Promise<void> {
+  if (hasLegacyDesignFlag(argv)) {
+    logger.error('`--design` was removed. Use `--design-light <path>` and/or `--design-dark <path>`.');
+    process.exit(2);
+  }
+
   const program = new Command();
 
   program
@@ -96,7 +106,8 @@ export async function run(argv: string[]): Promise<void> {
     .option('-s, --single-file', 'Merge all .md files into a single PDF', false)
     .option('-m, --mode <mode>', 'Render mode: light | dark')
     .option('--accent <hex>', 'Override the brand accent (hex)')
-    .option('--design <path>', 'Path to a spec-compliant DESIGN.md (github.com/google-labs-code/design.md)')
+    .option('--design-light <path>', 'Path to the light-mode DESIGN.md (github.com/google-labs-code/design.md)')
+    .option('--design-dark <path>', 'Path to the dark-mode DESIGN.md (github.com/google-labs-code/design.md)')
     .option('-f, --format <fmt>', 'Page format: A4 | Letter | Legal', 'A4')
     .option('--toc', 'Auto-generate a table of contents', false)
     .option('--cover', 'Generate a cover page', false)
@@ -134,7 +145,8 @@ export async function run(argv: string[]): Promise<void> {
   // No positional arg -> chat REPL (with banner).
   if (!inputDir) {
     if (shouldShowBanner(opts)) printBanner();
-    const design = loadDesign(opts.design);
+    const designLight = loadDesign('--design-light', opts.designLight);
+    const designDark = loadDesign('--design-dark', opts.designDark);
     const preMode: RenderMode | null = opts.mode
       ? (String(opts.mode).toLowerCase() as RenderMode)
       : null;
@@ -144,7 +156,8 @@ export async function run(argv: string[]): Promise<void> {
         outputDir: path.resolve(opts.output ?? 'pdf'),
         mode: preMode ?? 'light',
         format,
-        design,
+        designLight,
+        designDark,
         toc: Boolean(opts.toc),
         cover: Boolean(opts.cover),
         recursive: Boolean(opts.recursive),
@@ -183,7 +196,8 @@ export async function run(argv: string[]): Promise<void> {
     process.exit(2);
   }
 
-  const design = loadDesign(opts.design);
+  const designLight = loadDesign('--design-light', opts.designLight);
+  const designDark = loadDesign('--design-dark', opts.designDark);
 
   if (shouldShowBanner(opts)) printBanner();
   logger.banner('\u2726 awesome-md-to-pdf  \u00b7  ' + inputDir);
@@ -207,7 +221,8 @@ export async function run(argv: string[]): Promise<void> {
     showLinkUrls: Boolean(opts.showLinkUrls),
     concurrency,
     accent,
-    design,
+    designLight,
+    designDark,
   };
 
   let exitCode = 0;

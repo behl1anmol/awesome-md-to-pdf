@@ -57,7 +57,7 @@ Useful when a design is otherwise perfect but the brand accent clashes
 with your document's subject.
 
 ```bash
-awesome-md-to-pdf docs --design designs/linear.md --mode dark --accent "#a855f7"
+awesome-md-to-pdf docs --design-light designs/linear-light.md --design-dark designs/linear-dark.md --mode dark --accent "#a855f7"
 ```
 
 {: .tip }

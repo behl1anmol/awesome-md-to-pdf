@@ -30,7 +30,8 @@ When `inputDir` is omitted the CLI drops into [chat mode](./chat-mode).
 | `-r, --recursive` | Recurse into subdirectories | `false` |
 | `-s, --single-file` | Merge all `.md` files into one PDF | `false` |
 | `-m, --mode <mode>` | `light` or `dark` | prompt |
-| `--design <path>` | Path to a `DESIGN.md` file or folder | bundled Claude |
+| `--design-light <path>` | Path to the light-mode `DESIGN.md` file or folder | bundled Claude light |
+| `--design-dark <path>` | Path to the dark-mode `DESIGN.md` file or folder | bundled Claude dark |
 | `--accent <hex>` | Override the brand accent (`#rrggbb` or `rrggbb`) | design default |
 | `-f, --format <fmt>` | `A4` / `Letter` / `Legal` | `A4` |
 | `--toc` | Auto-generate a table of contents | `false` |
@@ -78,3 +79,6 @@ awesome-md-to-pdf docs \
 > Enabling `--header`, `--footer`, or `--page-numbers` reserves vertical
 > space at the page edges and breaks the default full-bleed canvas.
 > Leave them off for the "editorial magazine" look.
+
+{: .important }
+> `--design` was removed. Use `--design-light` and/or `--design-dark`.

@@ -32,6 +32,7 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { spawnSync } = require('child_process');
 
 const DIST = path.resolve(__dirname, '..', 'dist');
 const { parseDesignMd, DesignParseError } = require(path.join(DIST, 'design'));
@@ -251,6 +252,8 @@ function main() {
     'INVALID_COLOR'
   ));
 
+  failures.push(...checkLegacyDesignFlagRemoved());
+
   if (failures.length) {
     console.error('\n[verify-design] FAIL');
     for (const f of failures) console.error('  - ' + f);
@@ -258,6 +261,28 @@ function main() {
   }
 
   console.log('\n[verify-design] OK (' + rows.length + ' designs parsed, all invariants held)');
+}
+
+function checkLegacyDesignFlagRemoved() {
+  const root = path.resolve(__dirname, '..');
+  const cliPath = path.join(root, 'bin', 'md-to-pdf.js');
+  if (!fs.existsSync(cliPath)) {
+    return ['legacy-design-flag: CLI not found. Run `npm run build` first.'];
+  }
+  const run = spawnSync(process.execPath, [cliPath, '--design', 'samples/design-fixtures/linear.md', '--help'], {
+    cwd: root,
+    env: { ...process.env, MDTOPDF_NO_BANNER: '1' },
+    encoding: 'utf8',
+  });
+  const output = `${run.stdout || ''}\n${run.stderr || ''}`;
+  const errs = [];
+  if (run.status === 0) {
+    errs.push('legacy-design-flag: expected non-zero exit code when using removed `--design`.');
+  }
+  if (!output.includes('`--design` was removed')) {
+    errs.push('legacy-design-flag: missing migration hint for removed `--design` flag.');
+  }
+  return errs;
 }
 
 main();

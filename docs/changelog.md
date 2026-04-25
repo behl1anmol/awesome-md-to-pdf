@@ -17,6 +17,8 @@ specific commit and GitHub Actions run.
 - Full CI / publish / Pages automation under [`.github/workflows/`](https://github.com/<owner>/awesome-md-to-pdf/tree/main/.github/workflows).
 - Documentation site at [`docs/`](https://github.com/<owner>/awesome-md-to-pdf/tree/main/docs)
   powered by Just the Docs with a custom `parchment` color scheme.
+- **BREAKING:** Removed legacy `--design` / single-design session flow. Use
+  `--design-light` and `--design-dark` (CLI) and `/design light|dark ...` (chat mode).
 
 ## 0.2.0-beta.1
 
