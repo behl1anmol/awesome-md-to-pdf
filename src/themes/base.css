@@ -13,9 +13,11 @@ body {
   padding: 0;
   background: var(--bg-page);
   color: var(--text-primary);
-  font-family: var(--font-sans);
-  font-size: 11pt;
-  line-height: 1.6;
+  font-family: var(--type-body-md-family, var(--font-sans));
+  font-size: var(--type-body-md-size, 11pt);
+  line-height: var(--type-body-md-line, 1.6);
+  letter-spacing: var(--type-body-md-track, normal);
+  font-weight: var(--type-body-md-weight, 400);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   -webkit-print-color-adjust: exact;
@@ -178,15 +180,13 @@ body {
   margin-top: 0;
 }
 
-/* Headings (serif, weight 500, tight leading) */
+/* Headings -- each level reads its own --type-hN-* vars. */
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3,
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  font-family: var(--font-serif);
-  font-weight: 500;
   color: var(--text-primary);
   margin: 1.6em 0 0.4em;
   page-break-after: avoid;
@@ -194,40 +194,57 @@ body {
 }
 
 .markdown-body h1 {
-  font-size: 32pt;
-  line-height: 1.1;
+  font-family: var(--type-h1-family, var(--font-serif));
+  font-size: var(--type-h1-size, 32pt);
+  font-weight: var(--type-h1-weight, 500);
+  line-height: var(--type-h1-line, 1.1);
+  letter-spacing: var(--type-h1-track, normal);
   margin-top: 0;
   padding-bottom: 8pt;
   border-bottom: 1px solid var(--border-warm);
 }
 
 .markdown-body h2 {
-  font-size: 24pt;
-  line-height: 1.2;
+  font-family: var(--type-h2-family, var(--font-serif));
+  font-size: var(--type-h2-size, 24pt);
+  font-weight: var(--type-h2-weight, 500);
+  line-height: var(--type-h2-line, 1.2);
+  letter-spacing: var(--type-h2-track, normal);
   padding-bottom: 6pt;
   border-bottom: 1px solid var(--border-warm);
 }
 
 .markdown-body h3 {
-  font-size: 18pt;
-  line-height: 1.25;
+  font-family: var(--type-h3-family, var(--font-serif));
+  font-size: var(--type-h3-size, 18pt);
+  font-weight: var(--type-h3-weight, 500);
+  line-height: var(--type-h3-line, 1.25);
+  letter-spacing: var(--type-h3-track, normal);
 }
 
 .markdown-body h4 {
-  font-size: 14pt;
-  line-height: 1.3;
+  font-family: var(--type-h4-family, var(--font-serif));
+  font-size: var(--type-h4-size, 14pt);
+  font-weight: var(--type-h4-weight, 500);
+  line-height: var(--type-h4-line, 1.3);
+  letter-spacing: var(--type-h4-track, normal);
 }
 
 .markdown-body h5 {
-  font-size: 12pt;
-  line-height: 1.3;
+  font-family: var(--type-h5-family, var(--font-serif));
+  font-size: var(--type-h5-size, 12pt);
+  font-weight: var(--type-h5-weight, 500);
+  line-height: var(--type-h5-line, 1.3);
+  letter-spacing: var(--type-h5-track, normal);
 }
 
 .markdown-body h6 {
-  font-size: 10pt;
-  line-height: 1.4;
+  font-family: var(--type-h6-family, var(--font-serif));
+  font-size: var(--type-h6-size, 10pt);
+  font-weight: var(--type-h6-weight, 500);
+  line-height: var(--type-h6-line, 1.4);
+  letter-spacing: var(--type-h6-track, 0.5px);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--text-secondary);
 }
 
@@ -238,17 +255,22 @@ body {
 
 /* Paragraphs */
 .markdown-body p {
-  margin: 0 0 12pt 0;
-  line-height: 1.6;
+  margin: 0 0 var(--spacing-md, 12pt) 0;
+  font-family: var(--type-body-md-family, var(--font-sans));
+  font-size: var(--type-body-md-size, 11pt);
+  font-weight: var(--type-body-md-weight, 400);
+  line-height: var(--type-body-md-line, 1.6);
+  letter-spacing: var(--type-body-md-track, normal);
   orphans: 3;
   widows: 3;
 }
 
-/* Lead paragraph (first p after h1) */
+/* Lead paragraph (first p after h1) -- uses body-lg when defined. */
 .markdown-body h1 + p {
-  font-family: var(--font-serif);
-  font-size: 13pt;
-  line-height: 1.55;
+  font-family: var(--type-body-lg-family, var(--font-serif));
+  font-size: var(--type-body-lg-size, 13pt);
+  line-height: var(--type-body-lg-line, 1.55);
+  letter-spacing: var(--type-body-lg-track, normal);
   color: var(--text-secondary);
   margin-bottom: 18pt;
 }
@@ -414,24 +436,26 @@ body {
 
 /* Inline code */
 .markdown-body code {
-  font-family: var(--font-mono);
+  font-family: var(--type-code-family, var(--font-mono));
   font-size: 0.88em;
   background: var(--code-inline-bg);
   color: var(--text-primary);
   padding: 1px 5px;
-  border-radius: 4px;
-  letter-spacing: -0.2px;
+  border-radius: var(--rounded-sm, 4px);
+  letter-spacing: var(--type-code-track, -0.2px);
 }
 
 /* Code block */
 .markdown-body pre {
-  font-family: var(--font-mono);
-  font-size: 9.5pt;
-  line-height: 1.55;
+  font-family: var(--type-code-family, var(--font-mono));
+  font-size: var(--type-code-size, 9.5pt);
+  font-weight: var(--type-code-weight, 400);
+  line-height: var(--type-code-line, 1.55);
+  letter-spacing: var(--type-code-track, -0.2px);
   background: var(--code-bg);
   color: var(--text-primary);
   border: 1px solid var(--code-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--rounded-lg, var(--radius-lg));
   box-shadow: var(--shadow-ring);
   margin: 14pt 0;
   padding: 12pt 14pt;
@@ -441,7 +465,6 @@ body {
   break-inside: avoid;
   page-break-inside: avoid;
   position: relative;
-  letter-spacing: -0.2px;
 }
 
 .markdown-body pre code {
@@ -671,3 +694,122 @@ body {
   break-before: page;
   height: 0;
 }
+
+/* =========================================================
+ * DESIGN.md component classes
+ * Emitted by the markdown plugin when the active DESIGN.md declares the
+ * matching component under `components:`. Each selector reads
+ * `--component-<name>-*` custom properties emitted by src/template.ts.
+ * All `var()` fallbacks resolve to Claude-baseline values so the PDF
+ * still renders reasonably when the author didn't define a component.
+ * =======================================================*/
+
+.component-button-primary,
+.component-button-secondary,
+.component-button-tertiary {
+  display: inline-block;
+  padding: var(--component-button-primary-padding, var(--spacing-md, 12pt)) calc(var(--component-button-primary-padding, var(--spacing-md, 12pt)) * 1.5);
+  border-radius: var(--component-button-primary-rounded, var(--rounded-md, 8px));
+  font-family: var(--type-label-md-family, var(--font-sans));
+  font-size: var(--type-label-md-size, 10pt);
+  font-weight: var(--type-label-md-weight, 500);
+  letter-spacing: var(--type-label-md-track, 0.5px);
+  line-height: 1;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.component-button-primary {
+  background: var(--component-button-primary-bg, var(--brand));
+  color: var(--component-button-primary-fg, var(--bg-page));
+}
+
+.component-button-secondary {
+  background: var(--component-button-secondary-bg, transparent);
+  color: var(--component-button-secondary-fg, var(--brand));
+  border-color: var(--component-button-secondary-border-color, var(--brand));
+  border-radius: var(--component-button-secondary-rounded, var(--rounded-md, 8px));
+}
+
+.component-button-tertiary {
+  background: var(--component-button-tertiary-bg, transparent);
+  color: var(--component-button-tertiary-fg, var(--text-primary));
+  border-radius: var(--component-button-tertiary-rounded, var(--rounded-md, 8px));
+}
+
+.component-chip {
+  display: inline-block;
+  padding: 2pt 8pt;
+  border-radius: var(--component-chip-rounded, var(--rounded-full, 9999px));
+  background: var(--component-chip-bg, var(--bg-sand));
+  color: var(--component-chip-fg, var(--text-primary));
+  font-family: var(--type-label-md-family, var(--font-sans));
+  font-size: var(--type-label-md-size, 10pt);
+  font-weight: var(--type-label-md-weight, 500);
+  letter-spacing: var(--type-label-md-track, 0.5px);
+}
+
+.component-badge {
+  display: inline-block;
+  padding: 2pt 8pt;
+  border-radius: var(--component-badge-rounded, var(--rounded-full, 9999px));
+  background: var(--component-badge-bg, var(--brand-soft));
+  color: var(--component-badge-fg, var(--bg-page));
+  font-family: var(--type-label-md-family, var(--font-sans));
+  font-size: var(--type-label-md-size, 10pt);
+  font-weight: var(--type-label-md-weight, 500);
+}
+
+.component-card {
+  display: block;
+  padding: var(--component-card-padding, var(--spacing-lg, 16pt));
+  border-radius: var(--component-card-rounded, var(--rounded-xl, 16px));
+  background: var(--component-card-bg, var(--bg-surface));
+  color: var(--component-card-fg, var(--text-primary));
+  border: 1px solid var(--component-card-border-color, var(--border-warm));
+  box-shadow: var(--shadow-whisper);
+  margin: 14pt 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.component-input-field {
+  display: inline-block;
+  padding: var(--component-input-field-padding, 8pt 12pt);
+  border-radius: var(--component-input-field-rounded, var(--rounded-md, 8px));
+  background: var(--component-input-field-bg, var(--bg-page));
+  color: var(--component-input-field-fg, var(--text-primary));
+  border: 1px solid var(--component-input-field-border-color, var(--border-warm));
+  font-family: var(--type-body-md-family, var(--font-sans));
+  font-size: var(--type-body-md-size, 11pt);
+  min-width: 140pt;
+}
+
+.component-tooltip {
+  display: inline-block;
+  padding: 4pt 8pt;
+  border-radius: var(--component-tooltip-rounded, var(--rounded-sm, 6px));
+  background: var(--component-tooltip-bg, var(--text-primary));
+  color: var(--component-tooltip-fg, var(--bg-page));
+  font-size: 9pt;
+}
+
+.component-list-item {
+  display: list-item;
+  padding: var(--component-list-item-padding, var(--spacing-sm, 8pt));
+  border-radius: var(--component-list-item-rounded, var(--rounded-md, 8px));
+  background: var(--component-list-item-bg, transparent);
+  color: var(--component-list-item-fg, var(--text-primary));
+}
+
+/* Checkbox/radio classes decorate the task-list checkbox markdown-it
+ * emits by default; they piggy-back on the existing styling but pick
+ * up component colors when DESIGN.md provides them. */
+.markdown-body .component-checkbox {
+  accent-color: var(--component-checkbox-bg, var(--brand));
+}
+
+.markdown-body .component-radio {
+  accent-color: var(--component-radio-bg, var(--brand));
+}
+

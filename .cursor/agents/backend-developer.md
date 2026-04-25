@@ -34,7 +34,7 @@ Owns the core pipeline: markdown parsing, design extraction, PDF rendering, conc
 
 - [src/converter.ts](src/converter.ts) — file discovery, `renderMarkdown`, `convertOne`, `convertMerged`, `runPool`, browser lifecycle orchestration.
 - [src/markdown.ts](src/markdown.ts) — `createMarkdown`, plugin stack, fence/image/link renderers, `slugify`, `extractTitle`.
-- [src/design.ts](src/design.ts) — `parseDesignMd`, `SYNONYMS`, palette extraction, dark synthesis, font extraction.
+- [src/design.ts](src/design.ts) — `parseDesignMd`, YAML frontmatter parser, `{token.path}` reference resolution, DesignTokens shape.
 - [src/pdf.ts](src/pdf.ts) — `PdfRenderer`, launch args, `page.pdf`, readiness dance.
 - [src/mermaid-runtime.ts](src/mermaid-runtime.ts) — `resolveMermaidSrc`, `buildMermaidScript`, `applyDesignToMermaid`.
 - [src/cli.ts](src/cli.ts) — Commander setup, RawCliOptions, one-shot pipeline invocation, watch loop.

@@ -1,75 +1,193 @@
-# Design System Inspired by Claude (Anthropic)
+---
+version: alpha
+name: Claude
+description: A warm, editorial, parchment-canvas design system inspired by Anthropic's Claude product surface.
+colors:
+  primary: "#c96442"
+  secondary: "#d97757"
+  tertiary: "#d97757"
+  neutral: "#f5f4ed"
+  surface: "#faf9f5"
+  surface-container: "#f5f4ed"
+  surface-container-low: "#faf9f5"
+  surface-container-high: "#e8e6dc"
+  on-surface: "#141413"
+  on-surface-variant: "#5e5d59"
+  outline: "#f0eee6"
+  outline-variant: "#e8e6dc"
+  error: "#b53333"
+  focus: "#3898ec"
+  background: "#f5f4ed"
+  on-background: "#141413"
+typography:
+  h1:
+    fontFamily: Anthropic Serif
+    fontSize: 32pt
+    fontWeight: 500
+    lineHeight: 1.1
+    letterSpacing: 0px
+  h2:
+    fontFamily: Anthropic Serif
+    fontSize: 24pt
+    fontWeight: 500
+    lineHeight: 1.2
+    letterSpacing: 0px
+  h3:
+    fontFamily: Anthropic Serif
+    fontSize: 18pt
+    fontWeight: 500
+    lineHeight: 1.25
+    letterSpacing: 0px
+  h4:
+    fontFamily: Anthropic Serif
+    fontSize: 14pt
+    fontWeight: 500
+    lineHeight: 1.3
+    letterSpacing: 0px
+  h5:
+    fontFamily: Anthropic Serif
+    fontSize: 12pt
+    fontWeight: 500
+    lineHeight: 1.3
+    letterSpacing: 0px
+  h6:
+    fontFamily: Anthropic Serif
+    fontSize: 10pt
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: 0.5px
+  body-md:
+    fontFamily: Anthropic Sans
+    fontSize: 11pt
+    fontWeight: 400
+    lineHeight: 1.6
+  body-lg:
+    fontFamily: Anthropic Sans
+    fontSize: 13pt
+    fontWeight: 400
+    lineHeight: 1.55
+  body-sm:
+    fontFamily: Anthropic Sans
+    fontSize: 10pt
+    fontWeight: 400
+    lineHeight: 1.55
+  label-md:
+    fontFamily: Anthropic Sans
+    fontSize: 10pt
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: 0.5px
+  code:
+    fontFamily: Anthropic Mono
+    fontSize: 9.5pt
+    fontWeight: 400
+    lineHeight: 1.55
+    letterSpacing: -0.2px
+rounded:
+  sm: 6px
+  md: 8px
+  lg: 12px
+  xl: 16px
+  2xl: 24px
+  3xl: 32px
+  full: 9999px
+spacing:
+  xs: 4px
+  sm: 8px
+  md: 12px
+  lg: 16px
+  xl: 24px
+  2xl: 32px
+  base: 11px
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.surface}"
+    rounded: "{rounded.md}"
+    padding: 12px
+  button-primary-hover:
+    backgroundColor: "{colors.secondary}"
+  button-secondary:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.on-surface}"
+    rounded: "{rounded.md}"
+    padding: 12px
+    borderColor: "{colors.outline-variant}"
+  card:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.xl}"
+    padding: 16px
+    borderColor: "{colors.outline-variant}"
+  chip:
+    backgroundColor: "{colors.surface-container-high}"
+    textColor: "{colors.on-surface}"
+    rounded: "{rounded.full}"
+    padding: 4px
+  input-field:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
+    rounded: "{rounded.md}"
+    padding: 10px
+    borderColor: "{colors.outline-variant}"
+---
 
-## 1. Visual Theme & Atmosphere
+# Claude
 
-Claude's interface is a literary salon reimagined as a product page — warm, unhurried, and quietly intellectual. The entire experience is built on a parchment-toned canvas (`#f5f4ed`) that deliberately evokes the feeling of high-quality paper rather than a digital surface. Where most AI product pages lean into cold, futuristic aesthetics, Claude's design radiates human warmth, as if the AI itself has good taste in interior design.
+## Overview
 
-The signature move is the custom Anthropic Serif typeface — a medium-weight serif with generous proportions that gives every headline the gravitas of a book title. Combined with organic, hand-drawn-feeling illustrations in terracotta (`#c96442`), black, and muted green, the visual language says "thoughtful companion" rather than "powerful tool." The serif headlines breathe at tight-but-comfortable line-heights (1.10–1.30), creating a cadence that feels more like reading an essay than scanning a product page.
+Claude's interface is a literary salon reimagined as a product page -- warm, unhurried, and
+quietly intellectual. The entire experience is built on a parchment-toned canvas
+(`#f5f4ed`) that deliberately evokes the feeling of high-quality paper rather than a
+digital surface. Where most AI product pages lean into cold, futuristic aesthetics,
+Claude's design radiates human warmth, as if the AI itself had good taste in interior
+design.
 
-What makes Claude's design truly distinctive is its warm neutral palette. Every gray has a yellow-brown undertone (`#5e5d59`, `#87867f`, `#4d4c48`) — there are no cool blue-grays anywhere. Borders are cream-tinted (`#f0eee6`, `#e8e6dc`), shadows use warm transparent blacks, and even the darkest surfaces (`#141413`, `#30302e`) carry a barely perceptible olive warmth. This chromatic consistency creates a space that feels lived-in and trustworthy.
+## Colors
 
-**Key Characteristics:**
-- Warm parchment canvas (`#f5f4ed`) evoking premium paper, not screens
-- Custom Anthropic type family: Serif for headlines, Sans for UI, Mono for code
-- Terracotta brand accent (`#c96442`) — warm, earthy, deliberately un-tech
-- Exclusively warm-toned neutrals — every gray has a yellow-brown undertone
-- Organic, editorial illustrations replacing typical tech iconography
-- Ring-based shadow system (`0px 0px 0px 1px`) creating border-like depth without visible borders
-- Magazine-like pacing with generous section spacing and serif-driven hierarchy
+- **Primary (Terracotta):** The brand accent -- a burnt orange-brown used for primary CTAs
+  and signature moments. Deliberately earthy and un-tech.
+- **Secondary (Coral):** A lighter, warmer variant used for hover states and secondary
+  emphasis.
+- **Neutral (Parchment):** The default page canvas -- warm cream with a yellow-green
+  tint.
+- **Surface (Ivory):** The lightest surface, used for cards and elevated containers.
+- **On-surface (Near Black):** The primary text color -- a warm, olive-tinted dark.
+- **On-surface-variant (Olive Gray):** Secondary body text.
+- **Outline (Border Cream):** Hairline dividers.
+- **Outline-variant (Border Warm):** Prominent borders and section dividers.
+- **Error (Error Crimson):** A deep, warm red for error states.
 
-## 2. Color Palette & Roles
+## Typography
 
-### Primary
-- **Anthropic Near Black** (`#141413`): The primary text color and dark-theme surface — not pure black but a warm, almost olive-tinted dark that's gentler on the eyes. The warmest "black" in any major tech brand.
-- **Terracotta Brand** (`#c96442`): The core brand color — a burnt orange-brown used for primary CTA buttons, brand moments, and the signature accent. Deliberately earthy and un-tech.
-- **Coral Accent** (`#d97757`): A lighter, warmer variant of the brand color used for text accents, links on dark surfaces, and secondary emphasis.
+All headlines use **Anthropic Serif** at weight 500 -- the serif gives every heading the
+gravitas of a published title. **Anthropic Sans** handles body copy and UI with quiet
+efficiency at 1.6 line-height. **Anthropic Mono** handles code and labels.
 
-### Secondary & Accent
-- **Error Crimson** (`#b53333`): A deep, warm red for error states — serious without being alarming.
-- **Focus Blue** (`#3898ec`): Standard blue for input focus rings — the only cool color in the entire system, used purely for accessibility.
+## Layout
 
-### Surface & Background
-- **Parchment** (`#f5f4ed`): The primary page background — a warm cream with a yellow-green tint that feels like aged paper. The emotional foundation of the entire design.
-- **Ivory** (`#faf9f5`): The lightest surface — used for cards and elevated containers on the Parchment background. Barely distinguishable but creates subtle layering.
-- **Pure White** (`#ffffff`): Reserved for specific button surfaces and maximum-contrast elements.
-- **Warm Sand** (`#e8e6dc`): Button backgrounds and prominent interactive surfaces — a noticeably warm light gray.
-- **Dark Surface** (`#30302e`): Dark-theme containers, nav borders, and elevated dark elements — warm charcoal.
-- **Deep Dark** (`#141413`): Dark-theme page background and primary dark surface.
+The layout follows a single-column editorial flow with a 20mm typographic margin. An 8pt
+spacing scale (`spacing.*`) maintains a consistent rhythm across lists, cards, and
+admonitions.
 
-### Neutrals & Text
-- **Charcoal Warm** (`#4d4c48`): Button text on light warm surfaces — the go-to dark-on-light text.
-- **Olive Gray** (`#5e5d59`): Secondary body text — a distinctly warm medium-dark gray.
-- **Stone Gray** (`#87867f`): Tertiary text, footnotes, and de-emphasized metadata.
-- **Dark Warm** (`#3d3d3a`): Dark text links and emphasized secondary text.
-- **Warm Silver** (`#b0aea5`): Text on dark surfaces — a warm, parchment-tinted light gray.
+## Elevation & Depth
 
-### Semantic & Accent
-- **Border Cream** (`#f0eee6`): Standard light-theme border — barely visible warm cream, creating the gentlest possible containment.
-- **Border Warm** (`#e8e6dc`): Prominent borders, section dividers, and emphasized containment on light surfaces.
-- **Border Dark** (`#30302e`): Standard border on dark surfaces — maintains the warm tone.
-- **Ring Warm** (`#d1cfc5`): Shadow ring color for button hover/focus states.
+Depth is achieved through tonal layers rather than heavy shadows: a parchment page sits
+beneath ivory cards, and cards carry a near-invisible warm ring (`shadow-whisper`) for
+definition without drop shadows.
 
-## 3. Typography Rules
+## Shapes
 
-### Font Family
-- **Headline**: `Anthropic Serif`, with fallback: `Georgia`
-- **Body / UI**: `Anthropic Sans`, with fallback: `Arial`
-- **Code**: `Anthropic Mono`, with fallback: `Arial`
+Interactive elements use a medium corner radius (8px). Cards use the extra-large radius
+(16px) to feel soft and approachable; pills and chips use `rounded.full`.
 
-### Principles
-- **Serif for authority, sans for utility**: Anthropic Serif carries all headline content with medium weight (500), giving every heading the gravitas of a published title. Anthropic Sans handles all functional UI text with quiet efficiency.
-- **Single weight for serifs**: All Anthropic Serif headings use weight 500 — no bold, no light.
-- **Relaxed body line-height**: Most body text uses 1.60 line-height — significantly more generous than typical tech sites.
-- **Tight-but-not-compressed headings**: Line-heights of 1.10–1.30 for headings.
+## Components
 
-## 9. Agent Prompt Guide
+Buttons, cards, chips, and input fields all follow the same warm neutral + terracotta
+language. The primary button flips from terracotta-on-ivory to coral-on-ivory on hover.
 
-### Quick Color Reference
-- Brand CTA: "Terracotta Brand (#c96442)"
-- Page Background: "Parchment (#f5f4ed)"
-- Card Surface: "Ivory (#faf9f5)"
-- Primary Text: "Anthropic Near Black (#141413)"
-- Secondary Text: "Olive Gray (#5e5d59)"
-- Tertiary Text: "Stone Gray (#87867f)"
-- Borders (light): "Border Cream (#f0eee6)"
-- Dark Surface: "Dark Surface (#30302e)"
+## Do's and Don'ts
+
+- Do reserve the primary color for the single most important CTA per page.
+- Do lean into warm neutrals; every gray should have a yellow-brown undertone.
+- Don't introduce cool blue-grays outside of the focus ring.
+- Don't exceed two font weights per page.

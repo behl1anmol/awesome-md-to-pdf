@@ -1,59 +1,144 @@
 /*
- * design.ts -- DESIGN.md parser.
+ * design.ts -- DESIGN.md parser, aligned with Google's DESIGN.md spec.
  *
- * Takes a path to a DESIGN.md file (or a folder containing one) and produces
- * a DesignTokens object that the template layer can inject as :root CSS
- * variable overrides on top of the bundled Claude baseline.
+ * See https://github.com/google/design.md (docs/spec.md).
  *
- * The parser is deliberately heuristic, not strict. DESIGN.md files on
- * getdesign.md are written for humans and AI agents; they are not a
- * machine-readable spec. We extract what we can and leave everything else
- * to fall through to the Claude baseline tokens.
+ * A DESIGN.md file has two parts:
+ *   1. An optional YAML frontmatter block (between two `---` lines) and/or
+ *      fenced ```yaml code blocks. The YAML describes *normative* design
+ *      tokens -- colors, typography, rounded, spacing, components -- plus
+ *      `name`, `description`, `version`.
+ *   2. A markdown body with `## H2` sections (Overview, Colors, Typography,
+ *      Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts).
+ *      Prose is documentation only; tokens are not inferred from prose.
+ *
+ * This parser does two things:
+ *   - Reads every YAML block (frontmatter + fenced ```yaml) via the `yaml`
+ *     package, merges them (rejecting duplicate top-level keys), validates
+ *     the shapes, and resolves `{token.path}` references.
+ *   - Walks H2 headings and rejects duplicate canonical sections such as
+ *     two `## Colors`, per the spec's Consumer Behavior table.
+ *
+ * It never falls back to prose-heuristic extraction. A DESIGN.md without
+ * YAML throws a `DesignParseError` describing the missing frontmatter.
  */
 
 import fs from 'fs';
 import path from 'path';
-import type { RenderMode } from './prompt';
+import YAML from 'yaml';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types -- one-to-one with the spec.
 // ---------------------------------------------------------------------------
 
-export interface PaletteTokens {
-  bgPage?: string;
-  bgSurface?: string;
-  bgSand?: string;
-  textPrimary?: string;
-  textSecondary?: string;
-  textTertiary?: string;
-  brand?: string;
-  brandSoft?: string;
-  borderSoft?: string;
-  borderWarm?: string;
-  codeBg?: string;
-  codeBorder?: string;
-  codeInlineBg?: string;
-  error?: string;
-  focus?: string;
+export interface Typography {
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: number | string;
+  lineHeight?: string | number;
+  letterSpacing?: string;
+  fontFeature?: string;
+  fontVariation?: string;
 }
 
-export interface FontTokens {
-  serif?: string;
-  sans?: string;
-  mono?: string;
-}
+export type ColorValue = string;
+export type Dimension = string;
+export type SpacingValue = string | number;
+export type ComponentValue = string | number;
 
 export interface DesignTokens {
-  /** Display name (e.g. "Claude", "Linear"). Derived from the DESIGN.md title. */
+  /** Optional `version` token from the YAML (e.g. "alpha"). */
+  version?: string;
+  /** Display name: first `name:` in YAML, else H1, else filename. */
   name: string;
-  /** Absolute path of the source DESIGN.md. */
+  /** Optional `description` token from YAML. */
+  description?: string;
+  /** Absolute path to the parsed DESIGN.md file. */
   source: string;
-  /** Raw markdown length (for debugging). */
-  rawBytes: number;
-  light: PaletteTokens;
-  dark: PaletteTokens;
-  fonts: FontTokens;
+
+  colors: Record<string, ColorValue>;
+  typography: Record<string, Typography>;
+  rounded: Record<string, Dimension>;
+  spacing: Record<string, SpacingValue>;
+  /** Components with `{token.path}` refs pre-resolved to literal values. */
+  components: Record<string, Record<string, ComponentValue>>;
+
+  /** All `## H2` heading texts in document order. */
+  sections: string[];
+  /** Non-fatal warnings surfaced during parsing (unknown component props, etc.). */
+  warnings: string[];
 }
+
+export class DesignParseError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'DesignParseError';
+    this.code = code;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Canonical H2 section names that must be unique per document. Any alias
+ * listed with a given canonical name maps back to it -- `Brand & Style`
+ * is treated as `Overview`, `Layout & Spacing` as `Layout`, `Elevation`
+ * as `Elevation & Depth`.
+ */
+const SECTION_ALIASES: Record<string, string> = {
+  overview: 'overview',
+  'brand & style': 'overview',
+  'brand and style': 'overview',
+  colors: 'colors',
+  color: 'colors',
+  typography: 'typography',
+  layout: 'layout',
+  'layout & spacing': 'layout',
+  'layout and spacing': 'layout',
+  'elevation & depth': 'elevation',
+  'elevation and depth': 'elevation',
+  elevation: 'elevation',
+  shapes: 'shapes',
+  components: 'components',
+  "do's and don'ts": 'dos-and-donts',
+  'dos and donts': 'dos-and-donts',
+};
+
+/** Canonical YAML top-level keys the parser recognizes. Unknown keys are accepted verbatim. */
+const KNOWN_YAML_KEYS = new Set([
+  'version',
+  'name',
+  'description',
+  'colors',
+  'typography',
+  'rounded',
+  'spacing',
+  'components',
+]);
+
+/** Properties the spec declares for a typography token. */
+const KNOWN_TYPOGRAPHY_PROPS = new Set([
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'lineHeight',
+  'letterSpacing',
+  'fontFeature',
+  'fontVariation',
+]);
+
+// Regexes
+const HEX_COLOR_RE = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+// The DESIGN.md spec allows px|em|rem. This parser additionally accepts `pt`
+// because awesome-md-to-pdf targets print-layout PDF rendering where pt is
+// the idiomatic unit; `%` is accepted for backwards compatibility with older
+// token sets. Both are CSS-valid and render correctly through Puppeteer.
+const DIMENSION_RE = /^-?\d*\.?\d+(px|em|rem|pt|%)$/i;
+const TOKEN_REF_RE = /^\{([a-zA-Z0-9_.-]+)\}$/;
+const TOKEN_REF_EMBED_RE = /\{([a-zA-Z0-9_.-]+)\}/g;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -62,106 +147,657 @@ export interface DesignTokens {
 /**
  * Parse a DESIGN.md file or a directory containing one.
  *
- * Never throws; if parsing fails completely, returns a tokens object with
- * empty palettes and the `name` derived from the filename. Callers can then
- * layer this over the Claude baseline so nothing breaks.
+ * Throws `DesignParseError` on any hard failure (no YAML found, YAML syntax
+ * error, duplicate `## Colors`, unresolved token reference, cycle, …).
  */
 export function parseDesignMd(target: string): DesignTokens {
   const filePath = resolveDesignFile(target);
   const raw = fs.readFileSync(filePath, 'utf8');
 
-  const name = deriveName(filePath, raw);
-  const light = extractPalette(raw);
-  const dark = extractDarkPalette(raw, light);
-  const fonts = extractFonts(raw);
+  const blocks = extractYamlBlocks(raw);
+  if (blocks.length === 0) {
+    throw new DesignParseError(
+      'NO_YAML_FOUND',
+      `No YAML found in ${filePath}. DESIGN.md requires a frontmatter block (between --- lines) or a fenced \`\`\`yaml block. See https://github.com/google/design.md (docs/spec.md).`
+    );
+  }
+
+  const merged = mergeYamlBlocks(blocks);
+  const sections = extractH2Sections(raw);
+  assertUniqueSections(sections);
+
+  const warnings: string[] = [];
+  const colors = validateColors(merged['colors']);
+  const typography = validateTypography(merged['typography'], warnings);
+  const rounded = validateRounded(merged['rounded']);
+  const spacing = validateSpacing(merged['spacing']);
+
+  // Build a scope used for `{token.path}` resolution. References inside
+  // the `components` section may resolve to composite values; references
+  // in primitive groups must resolve to a primitive (enforced below).
+  const refScope: RefScope = {
+    colors,
+    typography,
+    rounded,
+    spacing,
+  };
+
+  const components = validateComponents(merged['components'], refScope, warnings);
+
+  const name = pickName(merged, raw, filePath);
+  const description = typeof merged['description'] === 'string' ? (merged['description'] as string) : undefined;
+  const version = typeof merged['version'] === 'string' ? (merged['version'] as string) : undefined;
+
+  for (const key of Object.keys(merged)) {
+    if (!KNOWN_YAML_KEYS.has(key)) {
+      warnings.push(`Unknown top-level key '${key}' in YAML -- preserved but not applied.`);
+    }
+  }
 
   return {
+    version,
     name,
+    description,
     source: filePath,
-    rawBytes: raw.length,
-    light,
-    dark,
-    fonts,
+    colors,
+    typography,
+    rounded,
+    spacing,
+    components,
+    sections,
+    warnings,
   };
 }
 
 /**
  * Resolve a user-supplied path (file or directory) to the actual DESIGN.md.
- * Searches common filename variants inside a directory.
  */
 export function resolveDesignFile(target: string): string {
   const abs = path.resolve(target);
   if (!fs.existsSync(abs)) {
-    throw new Error(`Design path does not exist: ${abs}`);
+    throw new DesignParseError('NOT_FOUND', `Design path does not exist: ${abs}`);
   }
 
   const stat = fs.statSync(abs);
   if (stat.isFile()) return abs;
 
   if (stat.isDirectory()) {
-    const candidates = [
-      'DESIGN.md',
-      'design.md',
-      'Design.md',
-      'design-md.md',
-      'design.markdown',
-    ];
+    const candidates = ['DESIGN.md', 'design.md', 'Design.md', 'design-md.md', 'design.markdown'];
     for (const c of candidates) {
       const p = path.join(abs, c);
       if (fs.existsSync(p)) return p;
     }
-    // Fall back to any *.md that looks design-like.
     const entries = fs.readdirSync(abs).filter((f) => /\.md$/i.test(f));
     const designLike = entries.find((f) => /design/i.test(f));
     if (designLike) return path.join(abs, designLike);
     if (entries.length === 1) return path.join(abs, entries[0]);
-    throw new Error(
+    throw new DesignParseError(
+      'NOT_FOUND',
       `No DESIGN.md found in directory: ${abs}. Expected one of ${candidates.join(', ')}.`
     );
   }
 
-  throw new Error(`Unsupported design path (not a file or directory): ${abs}`);
+  throw new DesignParseError('NOT_FOUND', `Unsupported design path (not a file or directory): ${abs}`);
 }
 
 /**
- * Return a short, human-friendly summary of what was extracted, for use by
- * the REPL's `/design info` command.
+ * Human-readable summary for the REPL's `/design info` command.
  */
 export function describeTokens(tokens: DesignTokens): string {
   const lines: string[] = [];
-  lines.push(`name:   ${tokens.name}`);
-  lines.push(`source: ${tokens.source}`);
+  lines.push(`name:    ${tokens.name}`);
+  if (tokens.version) lines.push(`version: ${tokens.version}`);
+  if (tokens.description) lines.push(`about:   ${tokens.description}`);
+  lines.push(`source:  ${tokens.source}`);
   lines.push('');
-  lines.push('light palette:');
-  for (const [k, v] of Object.entries(tokens.light)) {
-    if (v) lines.push(`  ${k.padEnd(15)} ${v}`);
+
+  lines.push(`colors (${Object.keys(tokens.colors).length}):`);
+  for (const [k, v] of Object.entries(tokens.colors).slice(0, 12)) {
+    lines.push(`  ${k.padEnd(22)} ${v}`);
   }
-  lines.push('');
-  lines.push('dark palette:');
-  for (const [k, v] of Object.entries(tokens.dark)) {
-    if (v) lines.push(`  ${k.padEnd(15)} ${v}`);
+  if (Object.keys(tokens.colors).length > 12) {
+    lines.push(`  ... ${Object.keys(tokens.colors).length - 12} more`);
   }
-  lines.push('');
-  if (tokens.fonts.serif) lines.push(`serif: ${tokens.fonts.serif}`);
-  if (tokens.fonts.sans) lines.push(`sans:  ${tokens.fonts.sans}`);
-  if (tokens.fonts.mono) lines.push(`mono:  ${tokens.fonts.mono}`);
+
+  const tyKeys = Object.keys(tokens.typography);
+  if (tyKeys.length) {
+    lines.push('');
+    lines.push(`typography (${tyKeys.length}):`);
+    for (const k of tyKeys.slice(0, 8)) {
+      const t = tokens.typography[k];
+      const summary = [t.fontFamily, t.fontSize, t.fontWeight]
+        .filter(Boolean)
+        .join(' / ');
+      lines.push(`  ${k.padEnd(22)} ${summary}`);
+    }
+  }
+
+  const rKeys = Object.keys(tokens.rounded);
+  if (rKeys.length) {
+    lines.push('');
+    lines.push(`rounded:  ${rKeys.map((k) => `${k}=${tokens.rounded[k]}`).join(', ')}`);
+  }
+
+  const sKeys = Object.keys(tokens.spacing);
+  if (sKeys.length) {
+    lines.push('');
+    lines.push(`spacing:  ${sKeys.map((k) => `${k}=${tokens.spacing[k]}`).join(', ')}`);
+  }
+
+  const cKeys = Object.keys(tokens.components);
+  if (cKeys.length) {
+    lines.push('');
+    lines.push(`components: ${cKeys.join(', ')}`);
+  }
+
+  if (tokens.warnings.length) {
+    lines.push('');
+    lines.push('warnings:');
+    for (const w of tokens.warnings) lines.push(`  ! ${w}`);
+  }
+
   return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
-// Name
+// YAML extraction
 // ---------------------------------------------------------------------------
 
-function deriveName(filePath: string, raw: string): string {
-  // Prefer the H1 heading text: "# Design System Inspired by Claude".
-  const h1 = raw.match(/^#\s+(.+?)\s*$/m);
-  if (h1) {
-    const t = h1[1].trim();
-    const after = t.match(/inspired\s+by\s+(.+)$/i);
-    if (after) return after[1].trim();
-    return t.replace(/^Design\s+System(\s*[-:])?\s*/i, '').trim() || t;
+interface YamlBlock {
+  yaml: string;
+  source: 'frontmatter' | 'fenced';
+  /** 1-based line number where the YAML content starts in the file. */
+  startLine: number;
+}
+
+/**
+ * Pull every YAML block out of the raw text:
+ *   1. An optional leading `---\n…\n---` frontmatter block.
+ *   2. Any number of fenced ```yaml / ```yml code blocks in the body.
+ */
+function extractYamlBlocks(raw: string): YamlBlock[] {
+  const blocks: YamlBlock[] = [];
+  const lines = raw.split(/\r?\n/);
+
+  let bodyStart = 0;
+  if (lines.length >= 2 && lines[0].trim() === '---') {
+    // Find the matching closing `---`.
+    let end = -1;
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '---') {
+        end = i;
+        break;
+      }
+    }
+    if (end > 0) {
+      const yaml = lines.slice(1, end).join('\n');
+      blocks.push({ yaml, source: 'frontmatter', startLine: 2 });
+      bodyStart = end + 1;
+    }
   }
-  // Fallback: the folder name or filename.
+
+  // Scan the body for fenced yaml blocks.
+  let inFence = false;
+  let fenceLang = '';
+  let fenceStart = 0;
+  let fenceBuf: string[] = [];
+  for (let i = bodyStart; i < lines.length; i++) {
+    const line = lines[i];
+    const fenceOpen = line.match(/^```\s*([a-zA-Z0-9_+-]*)\s*$/);
+    if (!inFence && fenceOpen) {
+      inFence = true;
+      fenceLang = fenceOpen[1];
+      fenceStart = i + 2; // 1-based line AFTER the ``` marker
+      fenceBuf = [];
+      continue;
+    }
+    if (inFence && /^```\s*$/.test(line)) {
+      if (fenceLang === 'yaml' || fenceLang === 'yml') {
+        blocks.push({
+          yaml: fenceBuf.join('\n'),
+          source: 'fenced',
+          startLine: fenceStart,
+        });
+      }
+      inFence = false;
+      fenceLang = '';
+      fenceBuf = [];
+      continue;
+    }
+    if (inFence) fenceBuf.push(line);
+  }
+
+  return blocks;
+}
+
+/**
+ * Parse each YAML block, reject duplicate top-level keys across blocks,
+ * and return the merged plain object.
+ */
+function mergeYamlBlocks(blocks: YamlBlock[]): Record<string, unknown> {
+  const merged: Record<string, unknown> = {};
+  const seen = new Map<string, number>();
+
+  for (let idx = 0; idx < blocks.length; idx++) {
+    const block = blocks[idx];
+    let parsed: unknown;
+    try {
+      parsed = YAML.parse(block.yaml);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new DesignParseError(
+        'YAML_PARSE_ERROR',
+        `YAML parse error in ${block.source} (line ~${block.startLine}): ${msg}`
+      );
+    }
+    if (parsed == null) continue;
+    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new DesignParseError(
+        'YAML_SHAPE_ERROR',
+        `YAML root must be a mapping (line ~${block.startLine}).`
+      );
+    }
+    const obj = parsed as Record<string, unknown>;
+    for (const key of Object.keys(obj)) {
+      if (seen.has(key)) {
+        throw new DesignParseError(
+          'DUPLICATE_YAML_KEY',
+          `Top-level key '${key}' is defined in multiple YAML blocks (first seen in block #${seen.get(key)! + 1}).`
+        );
+      }
+      seen.set(key, idx);
+      merged[key] = obj[key];
+    }
+  }
+
+  return merged;
+}
+
+// ---------------------------------------------------------------------------
+// Section (H2) handling
+// ---------------------------------------------------------------------------
+
+function extractH2Sections(raw: string): string[] {
+  const lines = raw.split(/\r?\n/);
+  const out: string[] = [];
+  let inFence = false;
+  for (const line of lines) {
+    if (/^```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const m = line.match(/^##\s+(.+?)\s*$/);
+    if (m) out.push(m[1].trim());
+  }
+  return out;
+}
+
+function assertUniqueSections(sections: string[]): void {
+  const seen = new Map<string, string>();
+  for (const heading of sections) {
+    const canonical = SECTION_ALIASES[heading.toLowerCase().trim()] ?? null;
+    if (!canonical) continue;
+    const prev = seen.get(canonical);
+    if (prev) {
+      throw new DesignParseError(
+        'DUPLICATE_SECTION',
+        `Duplicate canonical section '${canonical}' -- both '## ${prev}' and '## ${heading}' are present. Per spec, sections must be unique.`
+      );
+    }
+    seen.set(canonical, heading);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Validation -- colors, typography, rounded, spacing
+// ---------------------------------------------------------------------------
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v != null && !Array.isArray(v);
+}
+
+function asRecord(raw: unknown, label: string): Record<string, unknown> {
+  if (raw === undefined || raw === null) return {};
+  if (!isPlainObject(raw)) {
+    throw new DesignParseError('SHAPE_ERROR', `'${label}' must be a mapping.`);
+  }
+  return raw;
+}
+
+function validateColors(raw: unknown): Record<string, string> {
+  const obj = asRecord(raw, 'colors');
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v !== 'string' || !HEX_COLOR_RE.test(v.trim())) {
+      throw new DesignParseError(
+        'INVALID_COLOR',
+        `colors.${k}: expected a hex color like "#RRGGBB" or "#RRGGBBAA", got ${JSON.stringify(v)}.`
+      );
+    }
+    out[k] = v.trim().toLowerCase();
+  }
+  return out;
+}
+
+function validateTypography(
+  raw: unknown,
+  warnings: string[]
+): Record<string, Typography> {
+  const obj = asRecord(raw, 'typography');
+  const out: Record<string, Typography> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (!isPlainObject(v)) {
+      throw new DesignParseError(
+        'INVALID_TYPOGRAPHY',
+        `typography.${k}: expected a mapping, got ${JSON.stringify(v)}.`
+      );
+    }
+    const t: Typography = {};
+    for (const [pk, pv] of Object.entries(v)) {
+      if (!KNOWN_TYPOGRAPHY_PROPS.has(pk)) {
+        warnings.push(`Unknown typography property '${pk}' on typography.${k} -- preserved.`);
+      }
+      switch (pk) {
+        case 'fontFamily':
+          t.fontFamily = String(pv);
+          break;
+        case 'fontSize':
+          t.fontSize = validateDimension(pv, `typography.${k}.fontSize`);
+          break;
+        case 'fontWeight':
+          // The spec allows bare number OR quoted string; both are equivalent.
+          if (typeof pv !== 'number' && typeof pv !== 'string') {
+            throw new DesignParseError(
+              'INVALID_TYPOGRAPHY',
+              `typography.${k}.fontWeight: expected number or string, got ${JSON.stringify(pv)}.`
+            );
+          }
+          t.fontWeight = pv;
+          break;
+        case 'lineHeight':
+          // Dimension OR unitless number.
+          if (typeof pv === 'number') t.lineHeight = pv;
+          else if (typeof pv === 'string') {
+            if (DIMENSION_RE.test(pv.trim())) t.lineHeight = pv.trim();
+            else if (/^-?\d*\.?\d+$/.test(pv.trim())) t.lineHeight = Number(pv.trim());
+            else {
+              throw new DesignParseError(
+                'INVALID_TYPOGRAPHY',
+                `typography.${k}.lineHeight: expected Dimension or unitless number, got ${JSON.stringify(pv)}.`
+              );
+            }
+          } else {
+            throw new DesignParseError(
+              'INVALID_TYPOGRAPHY',
+              `typography.${k}.lineHeight: expected Dimension or unitless number, got ${JSON.stringify(pv)}.`
+            );
+          }
+          break;
+        case 'letterSpacing':
+          t.letterSpacing = validateLetterSpacing(pv, `typography.${k}.letterSpacing`);
+          break;
+        case 'fontFeature':
+          t.fontFeature = String(pv);
+          break;
+        case 'fontVariation':
+          t.fontVariation = String(pv);
+          break;
+        default:
+          // Unknown property -- preserve as a string on the typography
+          // entry for forward compatibility.
+          (t as unknown as Record<string, unknown>)[pk] = pv;
+      }
+    }
+    out[k] = t;
+  }
+  return out;
+}
+
+function validateDimension(v: unknown, label: string): string {
+  if (typeof v === 'number') return `${v}px`;
+  if (typeof v !== 'string') {
+    throw new DesignParseError('INVALID_DIMENSION', `${label}: expected Dimension (px|em|rem), got ${JSON.stringify(v)}.`);
+  }
+  const trimmed = v.trim();
+  if (!DIMENSION_RE.test(trimmed)) {
+    throw new DesignParseError('INVALID_DIMENSION', `${label}: expected Dimension (px|em|rem), got ${JSON.stringify(v)}.`);
+  }
+  return trimmed;
+}
+
+function validateLetterSpacing(v: unknown, label: string): string {
+  // letterSpacing is a Dimension but some sources use em values like
+  // "-0.02em"; DIMENSION_RE already accepts that. Numbers are also
+  // allowed by real-world fixtures -- treat as px.
+  if (typeof v === 'number') return `${v}px`;
+  if (typeof v !== 'string') {
+    throw new DesignParseError('INVALID_DIMENSION', `${label}: expected Dimension, got ${JSON.stringify(v)}.`);
+  }
+  const trimmed = v.trim();
+  if (!DIMENSION_RE.test(trimmed)) {
+    throw new DesignParseError('INVALID_DIMENSION', `${label}: expected Dimension (px|em|rem), got ${JSON.stringify(v)}.`);
+  }
+  return trimmed;
+}
+
+function validateRounded(raw: unknown): Record<string, string> {
+  const obj = asRecord(raw, 'rounded');
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'number') {
+      out[k] = `${v}px`;
+      continue;
+    }
+    if (typeof v !== 'string') {
+      throw new DesignParseError('INVALID_DIMENSION', `rounded.${k}: expected Dimension, got ${JSON.stringify(v)}.`);
+    }
+    const trimmed = v.trim();
+    // Allow large px values for "full" (9999px) and a couple of sentinel forms.
+    if (!DIMENSION_RE.test(trimmed)) {
+      throw new DesignParseError('INVALID_DIMENSION', `rounded.${k}: expected Dimension (px|em|rem), got ${JSON.stringify(v)}.`);
+    }
+    out[k] = trimmed;
+  }
+  return out;
+}
+
+function validateSpacing(raw: unknown): Record<string, string | number> {
+  const obj = asRecord(raw, 'spacing');
+  const out: Record<string, string | number> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'number') {
+      out[k] = v;
+      continue;
+    }
+    if (typeof v !== 'string') {
+      throw new DesignParseError('INVALID_SPACING', `spacing.${k}: expected Dimension or number, got ${JSON.stringify(v)}.`);
+    }
+    const trimmed = v.trim();
+    if (DIMENSION_RE.test(trimmed) || /^-?\d*\.?\d+$/.test(trimmed)) {
+      out[k] = trimmed;
+      continue;
+    }
+    // Per spec "Consumer Behavior for Unknown Content", accept raw strings
+    // for unusual spacing values (e.g. `grid-columns: '5'`, `container-max: '1280px'`).
+    out[k] = trimmed;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Components -- accepts composite `{token.path}` references
+// ---------------------------------------------------------------------------
+
+interface RefScope {
+  colors: Record<string, string>;
+  typography: Record<string, Typography>;
+  rounded: Record<string, string>;
+  spacing: Record<string, string | number>;
+}
+
+function validateComponents(
+  raw: unknown,
+  scope: RefScope,
+  warnings: string[]
+): Record<string, Record<string, ComponentValue>> {
+  const obj = asRecord(raw, 'components');
+  const out: Record<string, Record<string, ComponentValue>> = {};
+  for (const [compName, compVal] of Object.entries(obj)) {
+    if (!isPlainObject(compVal)) {
+      throw new DesignParseError(
+        'INVALID_COMPONENT',
+        `components.${compName}: expected a mapping of property names to values.`
+      );
+    }
+    const resolved: Record<string, ComponentValue> = {};
+    for (const [prop, rawVal] of Object.entries(compVal)) {
+      if (rawVal == null) continue;
+      if (typeof rawVal === 'number') {
+        resolved[prop] = rawVal;
+        continue;
+      }
+      if (typeof rawVal !== 'string') {
+        throw new DesignParseError(
+          'INVALID_COMPONENT',
+          `components.${compName}.${prop}: expected string or number, got ${typeof rawVal}.`
+        );
+      }
+      resolved[prop] = resolveComponentValue(rawVal, scope, `components.${compName}.${prop}`);
+    }
+    out[compName] = resolved;
+  }
+
+  // Emit warnings for unknown property names (spec's consumer-behavior table).
+  const KNOWN_COMP_PROPS = new Set([
+    'backgroundColor',
+    'textColor',
+    'typography',
+    'rounded',
+    'padding',
+    'size',
+    'height',
+    'width',
+    'borderColor',
+    'borderWidth',
+  ]);
+  for (const [compName, props] of Object.entries(out)) {
+    for (const prop of Object.keys(props)) {
+      if (!KNOWN_COMP_PROPS.has(prop)) {
+        warnings.push(`Unknown component property '${prop}' on components.${compName} -- preserved.`);
+      }
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Resolve a component value. If the entire string is a `{path}` ref, return
+ * the referenced value (primitive or stringified composite). Otherwise, do
+ * recursive in-string substitution of `{path}` refs.
+ */
+function resolveComponentValue(raw: string, scope: RefScope, label: string): ComponentValue {
+  const trimmed = raw.trim();
+  const whole = trimmed.match(TOKEN_REF_RE);
+  if (whole) {
+    return resolveRef(whole[1], scope, label, /* allowComposite */ true, new Set());
+  }
+  if (trimmed.includes('{')) {
+    return trimmed.replace(TOKEN_REF_EMBED_RE, (_m, p) => {
+      const v = resolveRef(p, scope, label, /* allowComposite */ false, new Set());
+      return String(v);
+    });
+  }
+  return trimmed;
+}
+
+/**
+ * Resolve a dotted `{path}` such as `colors.primary-60`,
+ * `typography.label-md`, `rounded.md`, `spacing.gutter`.
+ */
+function resolveRef(
+  pathStr: string,
+  scope: RefScope,
+  label: string,
+  allowComposite: boolean,
+  seen: Set<string>
+): ComponentValue {
+  if (seen.has(pathStr)) {
+    throw new DesignParseError(
+      'REF_CYCLE',
+      `Cyclic reference while resolving '${label}' -> {${pathStr}}.`
+    );
+  }
+  seen.add(pathStr);
+
+  const segments = pathStr.split('.');
+  if (segments.length < 2) {
+    throw new DesignParseError(
+      'INVALID_REF',
+      `Invalid token reference in ${label}: {${pathStr}} -- expected group.name form (e.g. {colors.primary}).`
+    );
+  }
+  const [group, ...rest] = segments;
+  const key = rest.join('.');
+
+  const lookup = (): unknown => {
+    switch (group) {
+      case 'colors':
+        return scope.colors[key];
+      case 'typography':
+        return scope.typography[key];
+      case 'rounded':
+        return scope.rounded[key];
+      case 'spacing':
+        return scope.spacing[key];
+      default:
+        return undefined;
+    }
+  };
+
+  const v = lookup();
+  if (v === undefined) {
+    throw new DesignParseError(
+      'UNRESOLVED_REF',
+      `Token reference {${pathStr}} in ${label} does not resolve.`
+    );
+  }
+
+  if (group === 'typography') {
+    if (!allowComposite) {
+      throw new DesignParseError(
+        'COMPOSITE_REF_NOT_ALLOWED',
+        `Token reference {${pathStr}} resolves to a composite typography token; only references in components may be composite.`
+      );
+    }
+    // Collapse a typography token into a single CSS shorthand-like string
+    // so it can be dropped into a component property. Consumers of the
+    // emitted CSS can still target --type-<level>-* vars for finer control.
+    const t = v as Typography;
+    const parts: string[] = [];
+    if (t.fontWeight != null) parts.push(String(t.fontWeight));
+    if (t.fontSize) parts.push(t.fontSize);
+    if (t.lineHeight != null) parts.push(`/${typeof t.lineHeight === 'number' ? t.lineHeight : t.lineHeight}`);
+    if (t.fontFamily) parts.push(t.fontFamily);
+    return parts.join(' ').trim();
+  }
+
+  if (typeof v === 'number') return v;
+  return String(v);
+}
+
+// ---------------------------------------------------------------------------
+// Name derivation
+// ---------------------------------------------------------------------------
+
+function pickName(merged: Record<string, unknown>, raw: string, filePath: string): string {
+  const y = merged['name'];
+  if (typeof y === 'string' && y.trim()) return y.trim();
+
+  const h1 = raw.match(/^#\s+(.+?)\s*$/m);
+  if (h1) return h1[1].trim();
+
   const base = path.basename(path.dirname(filePath));
   if (base && base.toLowerCase() !== 'designs' && base !== '.' && base !== '/') {
     return capitalize(base);
@@ -171,738 +807,4 @@ function deriveName(filePath: string, raw: string): string {
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-// ---------------------------------------------------------------------------
-// Palette extraction
-// ---------------------------------------------------------------------------
-
-type TokenSlot = keyof PaletteTokens;
-
-/**
- * Ordered list of token slots + their synonym matchers. First match wins.
- * Order matters for disambiguation -- e.g. we want "brand / link" to claim
- * colors before "error / red" so Vercel's "Ship Red" (which is actually its
- * brand CTA) doesn't get misread as an error.
- */
-interface SynonymRule {
-  slot: TokenSlot;
-  patterns: RegExp[];
-  /** Negative matches that disqualify a role name. */
-  not?: RegExp[];
-}
-
-/*
- * The SYNONYMS table is a FUNCTIONAL-ROLE LEXICON, not a brand registry.
- * Every pattern must describe a generic English design role ("body text",
- * "page background", "card surface", "primary cta") that any designer from
- * any company would use. Brand-specific names ("terracotta", "ship red",
- * "preview pink", "ivory") exist ONLY as legacy entries for back-compat
- * with the bundled Claude baseline and the getdesign.md fixtures we
- * originally shipped; never add new ones.
- *
- * If you find yourself wanting to add a brand name, stop and ask: "does
- * the DESIGN.md author also describe this slot in functional terms
- * somewhere on the same line?" If yes, teach the parser that functional
- * term instead.
- */
-const SYNONYMS: SynonymRule[] = [
-  // Backgrounds / canvases
-  {
-    slot: 'bgPage',
-    patterns: [
-      // Functional vocabulary (universal across designs)
-      /\bpage\s*(?:background|bg|canvas)\b/i,
-      /\broot\s*(?:background|bg)\b/i,
-      /\ball\s+backgrounds?\b/i,
-      /\bbody\s*background\b/i,
-      /\bprimary\s+(?:page\s+)?background\b/i,
-      /\bcanvas\b/i,
-      /\bbackground(?:\s*color)?$/i,
-      /^\s*background\b/i,
-      // Generic English color names (not brand-specific)
-      /\bpure\s*white\b/i,
-      // Legacy brand-ish names from shipped fixtures
-      /\bparchment\b/i,
-      /\bpaper(?:\s*white)?\b/i,
-      /\bnewsprint\b/i,
-    ],
-    // "dark" keeps light-mode selector out of dark-hinted phrasing; "ink"
-    // is an intentional exclusion so the Claude "page ink" token lands on
-    // textPrimary instead of bgPage. We deliberately do NOT blacklist
-    // "card" or "surface" here -- descriptions like "Page background and
-    // card surfaces" are common and must still assign to bgPage because
-    // bgSurface fires second when the author didn't split the two.
-    not: [/\bdark\b/i, /\bink\b/i],
-  },
-  {
-    slot: 'bgSurface',
-    patterns: [
-      // Functional vocabulary (plural-tolerant: designers often write
-      // "card surfaces" or "elevated panels").
-      /\bcards?\s*(?:surfaces?|backgrounds?|bg|fill)?\b/i,
-      /\bcontent\s*container\b/i,
-      /\belevated(?:\s*surfaces?)?\b/i,
-      /\bsurfaces?\s*(?:elevated|default|primary)?\b/i,
-      /\bcontainers?\b/i,
-      /\bpanels?\b/i,
-      // Legacy
-      /\bivory\b/i,
-    ],
-    not: [/\bdark\b/i],
-  },
-  {
-    slot: 'bgSand',
-    patterns: [
-      /\bsand\b/i,
-      /\bwarm\s*sand\b/i,
-      /\bsubtle\s*bg\b/i,
-      /\bsection\s*background\b/i,
-      /\balt(?:ernate)?\s*background\b/i,
-      /\bchip\b/i,
-    ],
-  },
-
-  // Text
-  {
-    slot: 'textPrimary',
-    patterns: [
-      // Functional vocabulary (universal)
-      /\ball\s+text\b/i,
-      /\bprimary\s*text\b/i,
-      /\bheading\s*text\b/i,
-      /\bheadline(?:\s*text)?\b/i,
-      /\bheadings?\s+and\s+body\b/i,
-      /\bbody\s*text\b/i,
-      /\btext\s+primary\b/i,
-      /\bprimary\s+(?:body|headline|heading)\b/i,
-      // Generic English
-      /\bnear\s*black\b/i,
-      /\bpure\s*black\b/i,
-      /\btrue\s*black\b/i,
-      // Legacy
-      /\bpage\s*ink\b/i,
-    ],
-    not: [/\bdark\b/i, /\bsurface\b/i, /\bbackground\b/i, /\bbutton\b/i, /\bcta\b/i, /\bbrand\b/i, /\baccent\b/i],
-  },
-  {
-    slot: 'textSecondary',
-    patterns: [
-      /\bsecondary\s*text\b/i,
-      /\btext\s+secondary\b/i,
-      /\bmuted\s*text\b/i,
-      /\bbody\s*gray\b/i,
-      /\bgray\s*(?:600|700)\b/i,
-      // Legacy
-      /\bolive\s*gray\b/i,
-      /\bsilver\b/i,
-    ],
-  },
-  {
-    slot: 'textTertiary',
-    patterns: [
-      /\btertiary(?:\s*text)?\b/i,
-      /\btext\s+tertiary\b/i,
-      /\bmetadata\b/i,
-      /\bcaption(?:\s*gray)?\b/i,
-      /\bfootnote\b/i,
-      /\bdisabled(?:\s*text|\s*gray)?\b/i,
-      /\bgray\s*(?:400|500)\b/i,
-      // Legacy
-      /\bstone\s*gray\b/i,
-    ],
-  },
-
-  // Brand (must come BEFORE error so "link blue" or generic "cta" wins over "error/red")
-  {
-    slot: 'brand',
-    patterns: [
-      // Functional vocabulary
-      /\bprimary\s*(?:cta|button|action)\b/i,
-      /\bsolid\s*buttons?\b/i,
-      /\ball\s+(?:solid\s+)?buttons?\b/i,
-      /\bcta\b/i,
-      /\baccent\b/i,
-      /\bbrand\s*(?:color|accent|primary)\b/i,
-      /^brand\b/i,
-      /\blink\s*(?:blue|color)?\b/i,
-      /^link\b/i,
-      /\bactive\s+states?\b/i,
-      // Legacy brand-ish names from shipped Claude / Vercel / other fixtures
-      /\bterracotta\b/i,
-      /\bship(?:\s*red)?\b/i,
-      /\bpreview\s*pink\b/i,
-    ],
-    not: [/\bsoft\b/i, /\bhover\b/i, /\bsecondary\b/i, /\bdisabled\b/i, /\bmuted\b/i],
-  },
-  {
-    slot: 'brandSoft',
-    patterns: [
-      /\bbrand\s*(?:soft|hover)\b/i,
-      /\bhover\s*(?:blue|accent|color|state)?\b/i,
-      /\bcta\s*hover\b/i,
-      /\baccent\s*hover\b/i,
-      // Legacy
-      /\bcoral\b/i,
-    ],
-  },
-
-  // Borders
-  {
-    slot: 'borderSoft',
-    patterns: [
-      /\bborders?\s*(?:default|subtle|light|soft|color)?\b/i,
-      /\bsubtle\s*border\b/i,
-      /\bhairline\s*(?:tint|border)\b/i,
-      /\bborder\s*\(light\)\b/i,
-      /\bdivider(?:\s*line)?\b/i,
-      /^divider\b/i,
-      // Legacy
-      /\bborder\s*cream\b/i,
-    ],
-  },
-  {
-    slot: 'borderWarm',
-    patterns: [
-      /\bborders?\s*(?:strong|prominent|warm)\b/i,
-      /\bsection\s*divider\b/i,
-      /\bborders?\s*\(prominent\)\b/i,
-    ],
-  },
-
-  // Semantic (come after brand)
-  {
-    slot: 'error',
-    patterns: [/\berror\b/i, /\bcrimson\b/i, /\bdanger\b/i, /\bnegative\s*(?:red|text)?\b/i],
-    not: [/\bbrand\b/i, /\bcta\b/i, /\blink\b/i, /\bship\b/i, /\bpreview\b/i],
-  },
-  {
-    slot: 'focus',
-    patterns: [/\bfocus\s*(?:ring|color|blue|outline)?\b/i],
-  },
-
-  // Code surfaces (rarely explicit in DESIGN.md but worth trying)
-  {
-    slot: 'codeBg',
-    patterns: [/\bcode\s*(?:background|surface|block)\b/i, /\bconsole\s*bg\b/i],
-  },
-  {
-    slot: 'codeBorder',
-    patterns: [/\bcode\s*border\b/i],
-  },
-  {
-    slot: 'codeInlineBg',
-    patterns: [/\binline\s*code\b/i, /\bcode\s*chip\b/i],
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Color regex (hex, rgb, rgba, hsl, hsla)
-// ---------------------------------------------------------------------------
-
-const COLOR_RE =
-  /(#[0-9a-f]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))/gi;
-
-/**
- * Extract the light-mode palette. Strategy:
- *   1) If there's a "Quick Color Reference" block, use it (cleanest).
- *   2) Walk the "Color Palette & Roles" bullets; for each role-name + color
- *      pair, try to map the role into a token slot via the synonym table.
- *   3) Fall through to an inline sweep over the whole doc.
- *
- * Unknown slots stay undefined and inherit the Claude baseline at render
- * time.
- */
-function extractPalette(raw: string): PaletteTokens {
-  const tokens: PaletteTokens = {};
-
-  // Pass 1: Quick Color Reference (highest signal-to-noise).
-  const quickRef = sliceSection(raw, /##+\s*(?:[0-9.\s]+)?Quick\s+Color\s+Reference/i);
-  if (quickRef) assignFromLines(tokens, splitLines(quickRef), /* darkHint */ false);
-
-  // Pass 2: Color Palette & Roles section.
-  const palette = sliceSection(raw, /##+\s*(?:[0-9.\s]+)?Color\s+Palette(?:\s*&\s*Roles)?/i);
-  if (palette) assignFromLines(tokens, splitLines(palette), false);
-
-  // Pass 3: Inline sweep (last resort) across the full doc.
-  if (countDefinedTokens(tokens) < 4) {
-    assignFromLines(tokens, splitLines(raw), false);
-  }
-
-  return tokens;
-}
-
-/**
- * Try to find explicit dark-mode tokens in the DESIGN.md. If none are found,
- * synthesize a dark palette by inverting the light one.
- */
-function extractDarkPalette(raw: string, light: PaletteTokens): PaletteTokens {
-  const dark: PaletteTokens = {};
-
-  // Heuristic: a line belongs to the DARK palette only if "dark" appears as
-  // a ROLE QUALIFIER ("dark mode", "dark surface", "dark theme page
-  // background") -- NOT as descriptive prose ("text on dark surfaces",
-  // "stands out on dark backgrounds", "against dark canvases").
-  //
-  // The distinction matters because Figma-style monochrome palettes have
-  // light-mode lines like `**Pure White** (#ffffff): ...visible on dark
-  // surfaces`, and without this filter every "on dark" descriptive line
-  // dragged light colors into the dark palette.
-  const isRoleQualifier = (l: string): boolean => {
-    // Skip lines where "dark" is purely descriptive: "on (a) dark ...",
-    // "against dark ...", "visible on dark ...".
-    if (/\bon\s+(?:a\s+|the\s+)?dark\b/i.test(l)) return false;
-    if (/\bagainst\s+(?:a\s+|the\s+)?dark\b/i.test(l)) return false;
-    if (/\bvisible\s+on\s+dark\b/i.test(l)) return false;
-    // Accept only when "dark" qualifies a role noun.
-    return /\bdark\s*(?:mode|theme|surface|background|bg|canvas|card|palette|variant|page|ink|ui|navigation|sidebar)\b/i.test(l)
-      || /\bdark[-\s](?:mode|theme)\b/i.test(l);
-  };
-  const lines = splitLines(raw).filter(isRoleQualifier);
-  assignFromLines(dark, lines, true);
-
-  // Fill any missing slots by inverting the light palette.
-  const synthesized = synthesizeDark(light);
-  for (const k of Object.keys(synthesized) as TokenSlot[]) {
-    if (!dark[k] && synthesized[k]) dark[k] = synthesized[k];
-  }
-
-  return dark;
-}
-
-/**
- * Given a list of lines (potentially with bullet markers, bold markup, and
- * descriptive prose), try to map each "role-name + color" pair to a token
- * slot and write the color into the tokens object (without clobbering).
- *
- * For each color literal we build a CONTEXT PHRASE that includes BOTH the
- * text before the literal (the "name", e.g. "Pure Black") AND the
- * description after the literal (e.g. "All text, all solid buttons, all
- * borders"). Descriptions carry the functional role in the vast majority
- * of real DESIGN.md files because the name is brand-specific and the
- * description is how humans explain what the color is for.
- *
- * When the context phrase contains multi-role language ("all text, all
- * buttons"), the same color is allowed to populate multiple slots in one
- * pass -- otherwise the first matching slot wins.
- */
-function assignFromLines(
-  tokens: PaletteTokens,
-  lines: string[],
-  darkHint: boolean
-): void {
-  for (const line of lines) {
-    // Find every color literal on the line.
-    const matches = Array.from(line.matchAll(COLOR_RE));
-    if (matches.length === 0) continue;
-
-    const matchArr = matches;
-    for (let i = 0; i < matchArr.length; i++) {
-      const m = matchArr[i];
-      const color = normalizeColor(m[0]);
-      if (!color) continue;
-
-      const start = m.index ?? 0;
-      const end = start + m[0].length;
-
-      const before = line.slice(0, start);
-      // Description after the color runs up to the NEXT color literal on
-      // the same line (so multi-color lines don't cross-contaminate) or to
-      // end-of-line.
-      const nextStart = i + 1 < matchArr.length ? (matchArr[i + 1].index ?? line.length) : line.length;
-      const after = line.slice(end, nextStart);
-
-      const phrase = extractContextPhrase(before, after);
-      if (!phrase) continue;
-
-      const slots = resolveAllSlots(phrase, darkHint);
-      if (!slots.length) continue;
-
-      for (const slot of slots) {
-        if (tokens[slot] === undefined) {
-          tokens[slot] = color;
-        }
-      }
-    }
-  }
-}
-
-/**
- * Strip markdown markup (bullets, bold/italic, backticks, straight quotes)
- * and trim. Used by both halves of the context phrase extraction.
- */
-function stripMarkup(s: string): string {
-  return s
-    .replace(/^[-*+]\s*/, '')
-    .replace(/\*\*/g, '')
-    .replace(/\*/g, '')
-    .replace(/`/g, '')
-    .replace(/"/g, '')
-    .replace(/[\u2018\u2019\u201c\u201d]/g, '')
-    .trim();
-}
-
-/**
- * Pull the "role name" out of the text preceding a color literal. Examples:
- *   "**Terracotta Brand** (`#c96442`): The core brand color..."
- *     -> "Terracotta Brand"
- *   "- Primary CTA: 'Vercel Black (#171717)'"
- *     -> "Primary CTA: Vercel Black"
- *   "Page Ink (#1a1a1a): Near-black used for headlines..."
- *     -> "Page Ink"
- */
-function extractRolePhrase(before: string): string | null {
-  let s = stripMarkup(before);
-  s = s.replace(/[\s(:\-,]+$/, '').trim();
-
-  // Keep only the last ~8 words before the color (role names are short).
-  const words = s.split(/\s+/).filter(Boolean);
-  const tail = words.slice(-8).join(' ');
-  return tail || null;
-}
-
-/**
- * Pull the "description" out of the text following a color literal. The
- * description usually sits between the color and the next sentence and
- * carries the functional role:
- *   "(#000000): All text, all solid buttons, all borders."
- *     -> "All text, all solid buttons, all borders"
- *   "(#ffffff): Primary page background and card surfaces."
- *     -> "Primary page background and card surfaces"
- *
- * Important invariant: when a single line lists multiple colors in the
- * form `"Name A (#aaa)" and "Name B (#bbb)"`, the text between the first
- * hex and the second hex belongs to Color B, NOT Color A. We therefore
- * stop the description at the first closing straight/curly quote, since
- * that marks the end of the current color's clause in all formats we've
- * seen across the getdesign.md fixture corpus.
- */
-function extractDescriptionPhrase(after: string): string {
-  let s = after.replace(/^[\s)\]:,.\-]+/, '');
-
-  // Cut at the first closing quote (straight or curly). This isolates the
-  // current color's clause when a line chains multiple colors together.
-  const quoteIdx = s.search(/["\u201c\u201d\u2018\u2019]/);
-  if (quoteIdx >= 0) s = s.slice(0, quoteIdx);
-
-  // Cut at conjunctions that introduce a NEW color label (heuristic: the
-  // conjunction is followed by a capitalized word that looks like a name).
-  // Skip this when the word after `and`/`or` is lowercase -- that case is
-  // genuine description text like "page background and card surfaces".
-  const conjMatch = s.match(/\s(?:and|or)\s+(?=[A-Z][a-zA-Z]*\s+(?:Black|White|Gray|Grey|Blue|Red|Green|Yellow|Purple|Pink|Orange|Brown|Gold))/);
-  if (conjMatch && typeof conjMatch.index === 'number') {
-    s = s.slice(0, conjMatch.index);
-  }
-
-  s = stripMarkup(s);
-
-  // Stop at the first sentence-ending period so multi-sentence descriptions
-  // don't smuggle unrelated phrasing into the role lookup.
-  const dotIdx = s.search(/\.\s|\.$/);
-  if (dotIdx > 0) s = s.slice(0, dotIdx);
-
-  // Clamp length so pathological long descriptions don't slow regex matching.
-  if (s.length > 240) s = s.slice(0, 240);
-  return s.trim();
-}
-
-/**
- * Combine the name (before hex) and description (after hex) into a single
- * searchable phrase. The separator " | " keeps the two halves disjoint so
- * a pattern that anchors to start-of-string with ^ still works against
- * either half independently.
- */
-function extractContextPhrase(before: string, after: string): string | null {
-  const name = extractRolePhrase(before) ?? '';
-  const desc = extractDescriptionPhrase(after);
-  const combined = [name, desc].filter(Boolean).join(' | ');
-  return combined || null;
-}
-
-/**
- * A role-noun family: phrases like "text", "heading", "body"; "button",
- * "cta", "action"; "border", "divider"; "background", "page", "canvas",
- * "surface", "card", "panel". A phrase that references two or more
- * DIFFERENT families is describing a color that spans multiple slots.
- */
-const ROLE_FAMILIES: RegExp[] = [
-  /\b(?:text|headings?|body|content|type|copy)\b/i,
-  /\b(?:buttons?|cta|actions?)\b/i,
-  /\b(?:borders?|dividers?)\b/i,
-  /\b(?:backgrounds?|page|canvas|surfaces?|cards?|panels?)\b/i,
-  /\b(?:links?|accents?)\b/i,
-];
-
-/**
- * Heuristic: does the phrase explicitly declare a color that serves
- * multiple roles? Fires when:
- *   - "all X" appears two or more times ("All text, all buttons, all
- *     borders"), OR
- *   - the phrase mentions two or more distinct role-noun families, which
- *     covers comma-separated lists like "Page background, card surfaces"
- *     and "All text, primary CTA, borders".
- */
-function isMultiRolePhrase(phrase: string): boolean {
-  const allMatches = phrase.match(/\ball\s+\w+/gi);
-  if (allMatches && allMatches.length >= 2) return true;
-
-  let families = 0;
-  for (const re of ROLE_FAMILIES) {
-    if (re.test(phrase)) families += 1;
-    if (families >= 2) return true;
-  }
-  return false;
-}
-
-/**
- * Map a role phrase through the synonym table and return the best slot.
- */
-function resolveSlot(rolePhrase: string, darkHint: boolean): TokenSlot | null {
-  // In dark mode, a "primary text" becomes the bg-page and vice versa.
-  // Don't apply that flip here -- we parse each mode independently.
-  void darkHint;
-  for (const rule of SYNONYMS) {
-    if (rule.not && rule.not.some((n) => n.test(rolePhrase))) continue;
-    if (rule.patterns.some((p) => p.test(rolePhrase))) {
-      return rule.slot;
-    }
-  }
-  return null;
-}
-
-/**
- * Return every slot whose rule matches the phrase, in SYNONYMS order.
- * Used when a color explicitly serves multiple roles on the same line.
- * For non-multi-role phrases this collapses to `[resolveSlot(...)]`.
- *
- * In multi-role mode we deliberately RELAX the per-rule NOT filters --
- * they exist to disambiguate narrow single-role phrases (e.g. "hover
- * blue" should be brandSoft, not brand) and they cause false negatives
- * when the phrase intentionally names several peers ("All text, primary
- * CTA, borders"). The other rules' patterns still gate membership, so
- * "all text" won't accidentally land in bgPage even with NOTs relaxed.
- */
-function resolveAllSlots(rolePhrase: string, darkHint: boolean): TokenSlot[] {
-  void darkHint;
-  const multi = isMultiRolePhrase(rolePhrase);
-  const hits: TokenSlot[] = [];
-  for (const rule of SYNONYMS) {
-    if (!multi && rule.not && rule.not.some((n) => n.test(rolePhrase))) continue;
-    if (rule.patterns.some((p) => p.test(rolePhrase))) {
-      hits.push(rule.slot);
-      if (!multi) break;
-    }
-  }
-  return hits;
-}
-
-function countDefinedTokens(obj: PaletteTokens): number {
-  return Object.values(obj).filter((v) => v !== undefined).length;
-}
-
-// ---------------------------------------------------------------------------
-// Font extraction
-// ---------------------------------------------------------------------------
-
-function extractFonts(raw: string): FontTokens {
-  const fonts: FontTokens = {};
-  const lines = splitLines(raw);
-
-  for (const line of lines) {
-    const m = matchFontLine(line);
-    if (!m) continue;
-    const { role, families } = m;
-    const joined = families.join(', ');
-    if (/headline|display|serif|heading/i.test(role) && !fonts.serif) {
-      fonts.serif = joined;
-    } else if (/body|ui|sans|primary|text/i.test(role) && !fonts.sans) {
-      fonts.sans = joined;
-    } else if (/mono|code/i.test(role) && !fonts.mono) {
-      fonts.mono = joined;
-    }
-  }
-
-  return fonts;
-}
-
-/**
- * Parse lines like:
- *   Headline: `Anthropic Serif`, with fallback: `Georgia`
- *   Primary: Geist, with fallbacks: Arial, Apple Color Emoji
- *   Monospace: `Anthropic Mono`, with fallback: `Arial`
- *
- * Also tolerates COMPOUND labels where designers combine two role keywords
- * with a slash or dash before the colon:
- *   Body / UI: Inter, with fallback: system-ui
- *   Monospace / Labels: JetBrains Mono
- *   Display / Buttons: Figma Sans
- *   Headline - Display: SF Pro Display
- *
- * The regex captures the FIRST keyword as the authoritative role; any
- * additional keywords are absorbed into an optional non-capturing
- * "qualifier" tail and discarded.
- */
-function matchFontLine(line: string): { role: string; families: string[] } | null {
-  const labelMatch = line.match(
-    /^\s*(?:[-*]\s*)?(?:\*\*)?(Headline|Display|Body|UI|Primary|Sans|Serif|Mono(?:space)?|Code)(?:[\s/\-][^*:\n]{0,40})?(?:\*\*)?\s*[:\-]\s*(.+)$/i
-  );
-  if (!labelMatch) return null;
-
-  const role = labelMatch[1];
-  const rest = labelMatch[2].replace(/[`*]/g, '');
-
-  // Split across "with fallback(s):" and commas.
-  const parts: string[] = [];
-  const fallbackIdx = rest.search(/with\s+fallbacks?\s*[:\-]/i);
-  if (fallbackIdx >= 0) {
-    parts.push(rest.slice(0, fallbackIdx));
-    parts.push(rest.slice(fallbackIdx).replace(/^with\s+fallbacks?\s*[:\-]/i, ''));
-  } else {
-    parts.push(rest);
-  }
-
-  const families: string[] = [];
-  for (const part of parts) {
-    for (const piece of part.split(/,|\bor\b/i)) {
-      const f = piece.trim().replace(/\.$/, '').replace(/^"|"$/g, '').trim();
-      if (!f) continue;
-      if (/^\(|^\*/.test(f)) continue;
-      if (/^with\s+fallback/i.test(f)) continue;
-      families.push(/\s/.test(f) && !/^['"]/.test(f) ? `"${f}"` : f);
-    }
-  }
-
-  if (!families.length) return null;
-  return { role, families };
-}
-
-// ---------------------------------------------------------------------------
-// Dark synthesis
-// ---------------------------------------------------------------------------
-
-/**
- * Invert a light palette to produce a reasonable dark palette when the
- * DESIGN.md doesn't spell one out. Strategy:
- *   - bgPage becomes near-black, bgSurface a step lighter.
- *   - textPrimary becomes light (was bgPage inverted), textSecondary dims.
- *   - brand keeps hue, slightly brightened for contrast.
- *   - borders darken.
- */
-function synthesizeDark(light: PaletteTokens): PaletteTokens {
-  const out: PaletteTokens = {};
-
-  if (light.textPrimary) out.bgPage = darken(light.textPrimary, 0);
-  else out.bgPage = '#141413';
-
-  out.bgSurface = lighten(out.bgPage, 0.08);
-  out.bgSand = lighten(out.bgPage, 0.12);
-
-  if (light.bgPage) out.textPrimary = light.bgPage;
-  else out.textPrimary = '#faf9f5';
-
-  if (light.textSecondary) out.textSecondary = light.textSecondary;
-  else out.textSecondary = '#b0aea5';
-
-  if (light.textTertiary) out.textTertiary = light.textTertiary;
-  else out.textTertiary = '#87867f';
-
-  if (light.brand) out.brand = lighten(light.brand, 0.06);
-  if (light.brandSoft) out.brandSoft = light.brandSoft;
-
-  out.borderSoft = lighten(out.bgPage, 0.06);
-  out.borderWarm = lighten(out.bgPage, 0.14);
-
-  out.codeBg = darken(out.bgPage, 0.04);
-  out.codeBorder = out.borderSoft;
-  out.codeInlineBg = out.bgSurface;
-
-  if (light.error) out.error = light.error;
-  if (light.focus) out.focus = light.focus;
-
-  return out;
-}
-
-// ---------------------------------------------------------------------------
-// Color normalization + math
-// ---------------------------------------------------------------------------
-
-function normalizeColor(input: string): string | null {
-  const s = input.trim();
-  if (/^#[0-9a-f]{3}$/i.test(s)) {
-    // Expand #abc -> #aabbcc
-    const [_, r, g, b] = s.match(/#([0-9a-f])([0-9a-f])([0-9a-f])/i)!;
-    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
-  }
-  if (/^#[0-9a-f]{6}$/i.test(s)) return s.toLowerCase();
-  if (/^#[0-9a-f]{8}$/i.test(s)) return s.toLowerCase();
-  if (/^rgba?\(/i.test(s)) return s.toLowerCase().replace(/\s+/g, '');
-  if (/^hsla?\(/i.test(s)) return s.toLowerCase().replace(/\s+/g, '');
-  return null;
-}
-
-function parseHex(hex: string): { r: number; g: number; b: number } | null {
-  const m = hex.match(/^#([0-9a-f]{6})/i);
-  if (!m) return null;
-  const n = parseInt(m[1], 16);
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
-function toHex(r: number, g: number, b: number): string {
-  const h = (n: number) =>
-    Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
-  return `#${h(r)}${h(g)}${h(b)}`;
-}
-
-function lighten(color: string, amount: number): string {
-  const rgb = parseHex(color);
-  if (!rgb) return color;
-  return toHex(
-    rgb.r + (255 - rgb.r) * amount,
-    rgb.g + (255 - rgb.g) * amount,
-    rgb.b + (255 - rgb.b) * amount
-  );
-}
-
-function darken(color: string, amount: number): string {
-  const rgb = parseHex(color);
-  if (!rgb) return color;
-  return toHex(rgb.r * (1 - amount), rgb.g * (1 - amount), rgb.b * (1 - amount));
-}
-
-// ---------------------------------------------------------------------------
-// Section slicing + line utilities
-// ---------------------------------------------------------------------------
-
-/**
- * Extract the text of a markdown section from its heading until the next
- * heading of equal-or-higher level. Returns null if the heading isn't found.
- */
-function sliceSection(raw: string, headingRe: RegExp): string | null {
-  const lines = raw.split(/\r?\n/);
-  let start = -1;
-  let startLevel = 0;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (headingRe.test(line)) {
-      const levelMatch = line.match(/^(#+)/);
-      startLevel = levelMatch ? levelMatch[1].length : 2;
-      start = i + 1;
-      break;
-    }
-  }
-
-  if (start < 0) return null;
-
-  for (let i = start; i < lines.length; i++) {
-    const m = lines[i].match(/^(#+)\s+/);
-    if (m && m[1].length <= startLevel) {
-      return lines.slice(start, i).join('\n');
-    }
-  }
-  return lines.slice(start).join('\n');
-}
-
-function splitLines(raw: string): string[] {
-  return raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 }

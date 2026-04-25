@@ -164,20 +164,20 @@ Errors are caught and logged via `console.error` INSIDE Chromium (not Node). The
 
 ### `applyDesignToMermaid(base, design, mode)`
 
-Overlays the parsed DESIGN.md palette onto the mermaid themeVariables so diagrams match the active design. Mapping:
+Overlays the parsed spec-compliant `DesignTokens` onto the mermaid themeVariables so diagrams match the active design. Mapping (colors from `design.colors.*`, font from `design.typography['body-md']?.fontFamily`):
 
-| PaletteTokens | mermaid themeVariable |
+| DesignTokens source                             | mermaid themeVariable                               |
 |---|---|
-| `bgPage` | `background` |
-| `bgSurface` | `primaryColor` |
-| `textPrimary` | `primaryTextColor`, `noteTextColor` |
-| `borderWarm` | `primaryBorderColor` |
-| `textSecondary` | `lineColor`, `secondaryTextColor`, `tertiaryTextColor` |
-| `borderSoft` | `secondaryColor`, `noteBkgColor` |
-| `bgSand` | `tertiaryColor` |
-| `fonts.sans` | `fontFamily` |
+| `colors.background` / `neutral` / `surface-container-lowest` | `background`                              |
+| `colors.surface`                                | `primaryColor`                                      |
+| `colors.on-surface` / `on-background` / `primary` | `primaryTextColor`, `noteTextColor`                |
+| `colors.outline` / `outline-variant`            | `primaryBorderColor`                                |
+| `colors.on-surface-variant` / `secondary`       | `lineColor`, `secondaryTextColor`, `tertiaryTextColor` |
+| `colors.secondary-container` / `surface-container-low` | `secondaryColor`, `noteBkgColor`            |
+| `colors.tertiary-container` / `surface-container-high` / `tertiary` | `tertiaryColor`             |
+| `typography['body-md'].fontFamily`              | `fontFamily`                                        |
 
-Unmapped slots keep Claude defaults. Extend this when adding a palette slot that should affect diagrams.
+Unmapped slots keep Claude defaults. Extend this when adding a color role that should affect diagrams.
 
 ### Mermaid theme defaults
 

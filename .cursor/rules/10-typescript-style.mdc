@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Types
 
-- Public shapes are declared with `interface`. Discriminated unions and type aliases use `type`. Example: `ConvertOptions`, `BuildHtmlOptions`, `DesignTokens`, `PaletteTokens` are interfaces; `RenderMode = 'light' | 'dark'` is a type.
+- Public shapes are declared with `interface`. Discriminated unions and type aliases use `type`. Example: `ConvertOptions`, `BuildHtmlOptions`, `DesignTokens`, `Typography` are interfaces; `RenderMode = 'light' | 'dark'` is a type.
 - Never leak `any`. Normalize unknown errors with the project pattern:
 
 ```ts

@@ -22,7 +22,7 @@ Walk the diff against each rule file:
 
 - [00-core-conventions.mdc](.cursor/rules/00-core-conventions.mdc): indent, quotes, no narrating comments, no emoji.
 - [10-typescript-style.mdc](.cursor/rules/10-typescript-style.mdc): no `any`, `unknown` narrowed via the project pattern, named exports, async IO for hot paths.
-- [30-design-tokens-and-css.mdc](.cursor/rules/30-design-tokens-and-css.mdc): new tokens traverse PaletteTokens/SYNONYMS/paletteToCss/tokens.css in lockstep.
+- [30-design-tokens-and-css.mdc](.cursor/rules/30-design-tokens-and-css.mdc): new tokens traverse DesignTokens / buildDesignOverride / tokens.css / base.css in lockstep.
 - [40-pdf-pipeline-invariants.mdc](.cursor/rules/40-pdf-pipeline-invariants.mdc): `page.pdf` options unchanged; navigation still via `file://`; readiness dance intact.
 - [50-cli-and-repl.mdc](.cursor/rules/50-cli-and-repl.mdc): new flag threaded through RawCliOptions -> ConvertOptions -> Session; README + docs updated.
 - [60-build-assets-and-docs.mdc](.cursor/rules/60-build-assets-and-docs.mdc): new runtime assets copied; docs updated per surface; changelog entry for user-visible changes.
