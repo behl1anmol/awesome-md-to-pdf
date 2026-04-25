@@ -7,17 +7,17 @@
 <p align="center">
   <strong>Awesome editorial Markdown &rarr; PDF.</strong><br>
   Convert a directory of Markdown files into beautifully styled PDFs.<br>
-  Ships with a Claude/Anthropic-inspired default design and a parser that lets you swap in any <code>DESIGN.md</code> from <a href="https://getdesign.md">getdesign.md</a> to theme your output on the fly.
+  Ships with a Claude/Anthropic-inspired default design and a parser that honors Google's <a href="https://github.com/google-labs-code/design.md/blob/main/docs/spec.md">DESIGN.md spec</a> so you can swap in any spec-compliant <code>DESIGN.md</code> to retheme your output on the fly.
 </p>
 
 <p align="center">
-  <a href="https://<owner>.github.io/awesome-md-to-pdf"><strong>Documentation</strong></a> &nbsp;&middot;&nbsp;
+  <a href="https://behl1anmol.github.io/awesome-md-to-pdf"><strong>Documentation</strong></a> &nbsp;&middot;&nbsp;
   <a href="https://www.npmjs.com/package/awesome-md-to-pdf"><strong>npm</strong></a>
 </p>
 
 ## Features
 
-- **Dynamic design pipeline** — drop in any `DESIGN.md` (browse at [getdesign.md](https://getdesign.md)) and the PDF re-themes itself. The Claude baseline stays as the default so existing calls are unchanged.
+- **Dynamic design pipeline** — drop in any spec-compliant `DESIGN.md` (see [the spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)) and the PDF re-themes itself: colors, typography, rounded, spacing, and components all flow from the YAML frontmatter. The Claude baseline stays as the default when no `--design` is passed.
 - **Interactive chat mode** — run `awesome-md-to-pdf` with no args and you land in a slash-command REPL (`/help`, `/convert`, `/design`, `/mode`, ...) with a live progress bar for every conversion.
 - **Fancy 3D welcome banner** — gradient ANSI Shadow `MD-TO-PDF` wordmark with a letter-spaced `A W E S O M E` eyebrow and an isometric 4-point starburst icon, all colored with 24-bit true-color.
 - **Editorial base design** — warm Parchment canvas, serif headlines (weight 500), sans body at 1.60 line-height, terracotta brand accent, ring-based depth. Every gray is warm-toned.
@@ -46,7 +46,7 @@ Either install exposes two identical binaries: `awesome-md-to-pdf` (canonical) a
 ### From source
 
 ```bash
-git clone https://github.com/<owner>/awesome-md-to-pdf.git
+git clone https://github.com/behl1anmol/awesome-md-to-pdf.git
 cd awesome-md-to-pdf
 npm install      # installs runtime + TypeScript toolchain
 npm run build    # compiles src/*.ts -> dist/*.js and copies CSS + design assets
@@ -162,14 +162,16 @@ awesome-md-to-pdf docs --design ./designs/linear.md --mode dark
 awesome-md-to-pdf docs --mode light -w
 ```
 
-## Using designs from getdesign.md
+## Using a DESIGN.md
 
-[getdesign.md](https://getdesign.md) is an open collection of `DESIGN.md` specs for 60+ popular brands (Stripe, Linear, Vercel, WIRED, Notion, ...). To use one:
+awesome-md-to-pdf parses any `DESIGN.md` that follows Google's
+[DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md) -- a YAML frontmatter
+block declaring `colors`, `typography`, `rounded`, `spacing`, and
+`components`, followed by human-readable prose sections. Bundled fixtures
+(`samples/design-fixtures/apple.md`, `figma.md`, `linear.md`, `nike.md`,
+`stripe.md`, `uber.md`, `vercel.md`) demonstrate the full surface.
 
-1. Open the brand page (e.g. `https://getdesign.md/linear.app/design-md`).
-2. Click the **DESIGN.md** tab.
-3. Copy the markdown and save it to a file, e.g. `designs/linear.md`.
-4. Run:
+To use one:
 
 ```bash
 awesome-md-to-pdf docs --design designs/linear.md --mode dark
@@ -182,7 +184,11 @@ Or from inside chat:
 /convert docs
 ```
 
-The parser (see [src/design.ts](src/design.ts)) walks the `DESIGN.md`'s **Color Palette & Roles** section and, when present, the **Quick Color Reference** block. It extracts palette + typography and layers them over the Claude baseline, so any slot the parser can't cleanly identify falls back gracefully. Dark-mode tokens are used when the DESIGN.md mentions them explicitly; otherwise synthesized via inversion.
+The parser (see [src/design.ts](src/design.ts)) extracts the normative YAML
+tokens, resolves `{token.path}` references, and layers them over the Claude
+baseline. Any token a `DESIGN.md` omits falls back to the baseline value
+defined in [src/themes/tokens.css](src/themes/tokens.css). A `DESIGN.md`
+without YAML frontmatter is rejected with `DesignParseError: NO_YAML_FOUND`.
 
 ## Markdown features supported
 

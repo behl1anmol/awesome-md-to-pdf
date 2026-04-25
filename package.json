@@ -1,6 +1,6 @@
 {
   "name": "awesome-md-to-pdf",
-  "version": "0.1.2-beta.1",
+  "version": "0.2.0-beta.1",
   "description": "Awesome editorial Markdown → PDF. Convert Markdown files in a directory to beautifully styled PDFs (Claude/Anthropic-inspired design) with mermaid, code highlighting, math, and more.",
   "bin": {
     "awesome-md-to-pdf": "bin/awesome-md-to-pdf.js",
@@ -24,6 +24,7 @@
     "start": "node bin/md-to-pdf.js",
     "typecheck": "tsc --noEmit",
     "verify:design": "npm run build && node scripts/verify-design-parse.js",
+    "verify:visual": "npm run build && node scripts/verify-visual.js",
     "demo:light": "npm run build && node bin/md-to-pdf.js samples -o samples/out --toc --cover --mode light",
     "demo:dark": "npm run build && node bin/md-to-pdf.js samples -o samples/out --toc --cover --mode dark",
     "prepublishOnly": "npm run build"
@@ -75,7 +76,8 @@
     "mermaid": "^11.14.0",
     "ora": "^9.3.0",
     "prompts": "^2.4.2",
-    "puppeteer": "^24.41.0"
+    "puppeteer": "^24.41.0",
+    "yaml": "^2.6.1"
   },
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",

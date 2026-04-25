@@ -643,8 +643,8 @@ function printWelcome(): void {
     tc.brand('/help') +
     tc.body(' for the full list.') +
     '\n' +
-    tc.meta('Browse designs at ') +
-    tc.link('https://getdesign.md');
+    tc.meta('DESIGN.md spec at ') +
+    tc.link('https://github.com/google-labs-code/design.md/blob/main/docs/spec.md');
 
   console.log(
     boxen(body, {
@@ -808,7 +808,7 @@ function cmdHelp(_args: string[], session: Session): void {
   }
 
   lines.push('');
-  lines.push(tc.meta('Browse designs at ') + tc.link('https://getdesign.md'));
+  lines.push(tc.meta('DESIGN.md spec at ') + tc.link('https://github.com/google/design.md'));
 
   console.log(boxWithBorder('Commands', lines.join('\n'), session));
 }
@@ -904,7 +904,7 @@ function cmdDesign(args: string[], session: Session): void {
       lines.push(tc.body('Using built-in Claude baseline.'));
     }
     lines.push('');
-    lines.push(tc.body('Browse designs at ') + tc.link('https://getdesign.md'));
+    lines.push(tc.body('DESIGN.md spec: ') + tc.link('https://github.com/google/design.md'));
     console.log(boxWithBorder('Design', lines.join('\n'), session));
     return;
   }

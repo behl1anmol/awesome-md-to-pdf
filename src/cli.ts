@@ -96,7 +96,7 @@ export async function run(argv: string[]): Promise<void> {
     .option('-s, --single-file', 'Merge all .md files into a single PDF', false)
     .option('-m, --mode <mode>', 'Render mode: light | dark')
     .option('--accent <hex>', 'Override the brand accent (hex)')
-    .option('--design <path>', 'Path to a DESIGN.md file or folder (see https://getdesign.md)')
+    .option('--design <path>', 'Path to a spec-compliant DESIGN.md (github.com/google-labs-code/design.md)')
     .option('-f, --format <fmt>', 'Page format: A4 | Letter | Legal', 'A4')
     .option('--toc', 'Auto-generate a table of contents', false)
     .option('--cover', 'Generate a cover page', false)
@@ -122,7 +122,7 @@ export async function run(argv: string[]): Promise<void> {
       '\n' +
         '  Run with no arguments to enter the interactive chat mode.\n' +
         '  Inside chat, type /help for the command list.\n' +
-        '  Browse DESIGN.md files at https://getdesign.md\n'
+        '  DESIGN.md authoring: https://github.com/google-labs-code/design.md\n'
     )
     .showHelpAfterError(true);
 

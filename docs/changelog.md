@@ -18,6 +18,41 @@ specific commit and GitHub Actions run.
 - Documentation site at [`docs/`](https://github.com/<owner>/awesome-md-to-pdf/tree/main/docs)
   powered by Just the Docs with a custom `parchment` color scheme.
 
+## 0.2.0-beta.1
+
+**BREAKING:** `DESIGN.md` parsing has been rewritten to follow Google's
+official [DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md) exactly. The
+legacy prose-heuristic parser has been removed; a `DESIGN.md` must now ship a
+YAML frontmatter block (between `---` lines) that declares its design tokens.
+
+Any `DESIGN.md` authored in the old prose-only style (bullet lists under
+"Color Palette & Roles") will no longer parse and will produce a
+`DesignParseError: NO_YAML_FOUND`. Migrate by wrapping the normative tokens
+in YAML frontmatter; see [docs/designs.md](./designs.md) for the format and
+[src/designs/README.md](../src/designs/README.md) for a worked example.
+
+Highlights:
+
+- New YAML parser in `src/design.ts` that implements the full spec surface:
+  `colors`, `typography`, `rounded`, `spacing`, `components` with
+  `{token.path}` reference resolution.
+- Per-level typography scale (`--type-h1-*`, `--type-body-md-*`, `--type-code-*`,
+  etc.) that lets a DESIGN.md author retune every heading, body, and code
+  selector without touching the package's CSS.
+- Component containers in markdown: `::: button-primary`, `::: card`, `::: chip`,
+  etc. consume the resolved `components.*` tokens as CSS custom properties.
+- All bundled fixtures (`apple`, `figma`, `linear`, `nike`, `stripe`, `uber`,
+  `vercel`) rewritten as spec-compliant YAML DESIGN.md files. The Claude
+  baseline (`src/designs/claude.md`) is also spec-compliant.
+- `npm run verify:design` now checks hex validity, required tokens
+  (`colors.primary`, `typography.body-md`), reference resolution, plus five
+  negative paths (no-YAML, YAML-syntax-error, duplicate `## Colors`,
+  unresolved ref, invalid color).
+- New `npm run verify:visual` smoke-tests the full DESIGN.md -> PDF -> PNG
+  pipeline against checked-in baselines in `scripts/baselines/`.
+- Dimensions accept `pt` and `%` in addition to the spec's `px | em | rem` --
+  a PDF-specific extension documented in [docs/designs.md](./designs.md).
+
 ## 0.1.1
 
 Broader `DESIGN.md` parsing so files authored in generic functional
@@ -36,7 +71,7 @@ English (not just the Claude dialect) resolve their palette correctly.
 - The dark-palette filter no longer mis-classifies descriptive prose
   such as `text on dark surfaces` as dark-mode role lines.
 - New `npm run verify:design` script and fixture corpus under
-  [`samples/design-fixtures/`](https://github.com/<owner>/awesome-md-to-pdf/tree/main/samples/design-fixtures)
+  [`samples/design-fixtures/`](https://github.com/behl1anmol/awesome-md-to-pdf/tree/main/samples/design-fixtures)
   guard the parser against regressions.
 
 ## 0.1.0

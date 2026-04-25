@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { pathToFileURL } from 'url';
 import type { RenderMode } from './prompt';
-import type { DesignTokens, PaletteTokens } from './design';
+import type { DesignTokens } from './design';
 
 /**
  * Resolve the on-disk location of mermaid.min.js and return its file:// URL
@@ -119,40 +119,62 @@ export function buildMermaidScript(
 }
 
 /**
- * Overlay the active DESIGN.md palette onto the mermaid theme variables for
- * the current render mode. Only the slots we reliably parse are pushed --
- * anything missing keeps the Claude defaults (which themselves already work
- * with either light or dark).
+ * Overlay the active DESIGN.md tokens onto the mermaid theme variables.
+ * Reads from `design.colors` (spec roles primary/secondary/tertiary/surface/
+ * on-surface/outline) and from `design.typography['body-md'].fontFamily`.
+ * Anything absent keeps the mode-appropriate Claude defaults.
  */
 function applyDesignToMermaid(
   base: ThemeVariables,
   design: DesignTokens | null,
-  mode: RenderMode
+  _mode: RenderMode
 ): ThemeVariables {
   if (!design) return base;
-  const palette: PaletteTokens = mode === 'dark' ? design.dark : design.light;
+  const colors = design.colors;
   const out: ThemeVariables = { ...base };
 
-  if (palette.bgPage) out.background = palette.bgPage;
-  if (palette.bgSurface) out.primaryColor = palette.bgSurface;
-  if (palette.textPrimary) {
-    out.primaryTextColor = palette.textPrimary;
-    out.noteTextColor = palette.textPrimary;
-  }
-  if (palette.borderWarm) out.primaryBorderColor = palette.borderWarm;
-  if (palette.textSecondary) {
-    out.lineColor = palette.textSecondary;
-    out.secondaryTextColor = palette.textSecondary;
-    out.tertiaryTextColor = palette.textSecondary;
-  }
-  if (palette.borderSoft) {
-    out.secondaryColor = palette.borderSoft;
-    out.noteBkgColor = palette.borderSoft;
-  }
-  if (palette.bgSand) out.tertiaryColor = palette.bgSand;
+  const background =
+    colors['background'] ??
+    colors['neutral'] ??
+    colors['surface-container-lowest'] ??
+    colors['surface'];
+  if (background) out.background = background;
 
-  if (design.fonts.sans) {
-    out.fontFamily = `${design.fonts.sans}, 'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif`;
+  const surface = colors['surface'] ?? colors['surface-container'] ?? colors['neutral'];
+  if (surface) out.primaryColor = surface;
+
+  const onSurface = colors['on-surface'] ?? colors['on-background'] ?? colors['primary'];
+  if (onSurface) {
+    out.primaryTextColor = onSurface;
+    out.noteTextColor = onSurface;
+  }
+
+  const outline = colors['outline'] ?? colors['outline-variant'];
+  if (outline) out.primaryBorderColor = outline;
+
+  const onSurfaceVariant = colors['on-surface-variant'] ?? colors['secondary'];
+  if (onSurfaceVariant) {
+    out.lineColor = onSurfaceVariant;
+    out.secondaryTextColor = onSurfaceVariant;
+    out.tertiaryTextColor = onSurfaceVariant;
+  }
+
+  const secondary = colors['secondary-container'] ?? colors['surface-container-low'] ?? outline;
+  if (secondary) {
+    out.secondaryColor = secondary;
+    out.noteBkgColor = secondary;
+  }
+
+  const tertiary =
+    colors['tertiary-container'] ?? colors['surface-container-high'] ?? colors['tertiary'];
+  if (tertiary) out.tertiaryColor = tertiary;
+
+  const bodyFont =
+    design.typography['body-md']?.fontFamily ??
+    design.typography['body-lg']?.fontFamily ??
+    design.typography['body-sm']?.fontFamily;
+  if (bodyFont) {
+    out.fontFamily = `${bodyFont}, 'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif`;
   }
 
   return out;
