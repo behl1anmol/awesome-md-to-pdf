@@ -49,7 +49,7 @@ src/                TypeScript source
   pdf.ts            Puppeteer lifecycle
   mermaid-runtime.ts  Client-side mermaid init (design-aware)
   design.ts         DESIGN.md parser (synonyms + regex + dark synthesis)
-  banner.ts         3D welcome banner (starburst + AWESOME eyebrow + wordmark)
+  banner.ts         3D welcome banner (origami icon + AWESOME eyebrow + wordmark)
   repl.ts           Interactive chat loop + slash commands
   progress.ts       cli-progress wrapper (per-file + overall bars)
   logger.ts         ora + chalk helpers

@@ -1,12 +1,12 @@
 /*
  * banner.ts -- the 3D-vibe welcome banner for the CLI / REPL.
  *
- * Layout: isometric 4-point starburst icon on the left + a gradient
+ * Layout: asymmetric origami icon on the left + a gradient
  * "A W E S O M E" eyebrow line above the chunky ANSI Shadow wordmark
  * "MD-TO-PDF" on the right, all colored with a multi-stop 24-bit RGB
- * gradient (terracotta -> coral -> olive -> warm teal). The starburst
- * glyph (U+2726) is also re-used in the REPL prompt as the compact
- * brand mark for awesome-md-to-pdf.
+ * gradient (terracotta -> coral -> olive -> warm teal). A compact
+ * Unicode marker is also re-used in the REPL prompt as the brand mark for
+ * awesome-md-to-pdf.
  *
  * Everything is hand-assembled so there is no runtime dep on figlet.
  * Graceful fallbacks:
@@ -18,13 +18,12 @@
 import chalk from 'chalk';
 
 // ---------------------------------------------------------------------------
-// Icon -- a 4-point isometric starburst, 6 rows tall to match the wordmark.
+// Icon -- an asymmetric origami mark, 6 rows tall to match the wordmark.
 //
 // Each row is rendered as four regions (outline / top face / left body /
 // right body) that we paint with distinct RGB stops so the eye reads the
-// shape as a crystalline 3D sparkle. The glyph is the visual anchor of
-// the awesome-md-to-pdf rebrand and is mirrored in the REPL prompt as
-// a compact single-char "✦" brand mark.
+// shape as a folded 3D shard. This mark is mirrored in the REPL prompt as
+// a compact single-glyph Unicode brand marker.
 // ---------------------------------------------------------------------------
 
 // Face palette (24-bit RGB).
@@ -135,9 +134,9 @@ export function renderTagline(): string {
 function renderCompact(paint: Paint, plain: boolean): string {
   const lines: string[] = [];
   lines.push('');
-  lines.push('  ' + gradientWord('\u2726 A W E S O M E \u2726', plain));
+  lines.push('  ' + gradientWord('\u25c8 A W E S O M E \u25c8', plain));
   lines.push('');
-  lines.push('  ' + paint('\u2726', FACE.T) + paint('\u2727', FACE.R) + paint('\u2726', FACE.L) + '  ' + gradientWord(COMPACT_WORDMARK.trim(), plain));
+  lines.push('  ' + paint('\u25c8', FACE.T) + '  ' + gradientWord(COMPACT_WORDMARK.trim(), plain));
   lines.push('');
   lines.push(...renderTaglineLines(paint, plain));
   lines.push('');
@@ -145,7 +144,7 @@ function renderCompact(paint: Paint, plain: boolean): string {
 }
 
 function renderIcon(paint: Paint): string[] {
-  // 6-row isometric 4-point starburst. Each cell is placed in one of four
+  // 6-row asymmetric origami shard. Each cell is placed in one of four
   // regions:
   //   H = outline   (deep terracotta)
   //   T = top face  (light coral)
@@ -155,15 +154,14 @@ function renderIcon(paint: Paint): string[] {
   //
   // Rendering the regions in a structured way (rather than hand-typing
   // escape codes per character) keeps the geometry obvious and easy to
-  // tweak. The shape is a diamond star that tapers to points at top and
-  // bottom, widest across rows 3-4 where the left and right facets meet
-  // along a central top-face ridge.
+  // tweak. The shape deliberately leans right, so it reads like a folded
+  // paper mark rather than a symmetric sparkle.
   const geometry: string[] = [
     '....HH....',
-    '...HTTH...',
-    'HLLLTTRRRH',
-    'HLLLTTRRRH',
-    '...HTTH...',
+    '...HTTR...',
+    '..HLTTRRH.',
+    '.HLLTRRRH.',
+    '..HLLRRH..',
     '....HH....',
   ];
 
@@ -199,10 +197,11 @@ function renderWordmark(paint: Paint): string[] {
 }
 
 function renderEyebrow(plain: boolean, leftPad: number, columnWidth: number): string {
-  // Letter-spaced "AWESOME" flanked by starburst glyphs, painted with the
+  // Letter-spaced "AWESOME" flanked by the compact Unicode marker, painted
+  // with
   // same WORDMARK_STOPS gradient as the block letters below so the whole
   // banner reads as one coordinated mark.
-  const text = '\u2726  A W E S O M E  \u2726';
+  const text = '\u25c8  A W E S O M E  \u25c8';
   const visibleLen = [...text].length;
   const pad = Math.max(0, Math.floor((columnWidth - visibleLen) / 2));
   return ' '.repeat(leftPad + pad) + gradientWord(text, plain);

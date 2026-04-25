@@ -26,14 +26,15 @@ awesome-md-to-pdf
 ```
 
 You'll see the gradient ANSI Shadow `MD-TO-PDF` wordmark with the
-`A W E S O M E` eyebrow, a 3D isometric starburst icon, and the prompt:
+`A W E S O M E` eyebrow, an asymmetric origami icon, and the prompt:
 
 ```text
-[* light] >
+[◈ · light] ›
 ```
 
-The starburst `*` at the start of the prompt is the awesome-md-to-pdf
-glyph -- the same shape rendered in 3D on the welcome banner.
+The `◈` marker at the start of the prompt is the awesome-md-to-pdf
+glyph -- a compact Unicode brand mark that matches the origami icon on
+the welcome banner.
 
 ## Navigation keys
 
@@ -80,12 +81,12 @@ Type `/help` inside the REPL for the latest table. Highlights:
 A typical chat session:
 
 ```text
-[* light] > /input notes
-[* light] > /design designs/linear.md
-[* light] > /mode dark
-[* dark] > /toc
-[* dark] > /cover
-[* dark] > /convert
+[◈ · light] › /input notes
+[◈ · light] › /design designs/linear.md
+[◈ · light] › /mode dark
+[◈ · dark] › /toc
+[◈ · dark] › /cover
+[◈ · dark] › /convert
 ```
 
 Each `/convert` runs the pipeline with a per-file progress bar showing the

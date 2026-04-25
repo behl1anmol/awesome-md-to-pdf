@@ -19,7 +19,7 @@
 
 - **Dynamic design pipeline** — drop in any spec-compliant `DESIGN.md` (see [the spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)) and the PDF re-themes itself: colors, typography, rounded, spacing, and components all flow from the YAML frontmatter. The Claude baseline stays as the default when no `--design` is passed.
 - **Interactive chat mode** — run `awesome-md-to-pdf` with no args and you land in a slash-command REPL (`/help`, `/convert`, `/design`, `/mode`, ...) with a live progress bar for every conversion.
-- **Fancy 3D welcome banner** — gradient ANSI Shadow `MD-TO-PDF` wordmark with a letter-spaced `A W E S O M E` eyebrow and an isometric 4-point starburst icon, all colored with 24-bit true-color.
+- **Fancy 3D welcome banner** — gradient ANSI Shadow `MD-TO-PDF` wordmark with a letter-spaced `A W E S O M E` eyebrow and an asymmetric origami-style icon, all colored with 24-bit true-color.
 - **Editorial base design** — warm Parchment canvas, serif headlines (weight 500), sans body at 1.60 line-height, terracotta brand accent, ring-based depth. Every gray is warm-toned.
 - **Light or dark mode** — `--mode light` (Parchment canvas) or `--mode dark` (Near Black canvas). Prompted interactively when omitted.
 - **Mermaid diagrams** — flowcharts, sequence, class, state, ER, gantt, pie, journey, gitGraph, mindmap — all rendered client-side with palette-matched theming that follows the active design.
@@ -68,13 +68,13 @@ node bin/awesome-md-to-pdf.js <inputDir>   # one-shot
 awesome-md-to-pdf
 ```
 
-You'll see the 3D gradient banner (starburst + `A W E S O M E` eyebrow + `MD-TO-PDF` wordmark), then drop into the REPL:
+You'll see the 3D gradient banner (origami icon + `A W E S O M E` eyebrow + `MD-TO-PDF` wordmark), then drop into the REPL:
 
 ```text
-[✦ · light] ›
+[◈ · light] ›
 ```
 
-The `✦` is the awesome-md-to-pdf starburst glyph — the same shape you see rendered in 3D on the left of the welcome banner.
+The `◈` marker is the awesome-md-to-pdf prompt glyph — a compact Unicode version of the origami icon rendered in 3D on the left of the welcome banner.
 
 ### Navigation
 
@@ -220,7 +220,7 @@ src/               TypeScript source
   pdf.ts           Puppeteer lifecycle
   mermaid-runtime.ts  Client-side mermaid init (design-aware)
   design.ts        DESIGN.md parser (synonyms + regex + dark synthesis)
-  banner.ts        3D welcome banner (isometric starburst + AWESOME eyebrow + ANSI Shadow wordmark)
+  banner.ts        3D welcome banner (origami icon + AWESOME eyebrow + ANSI Shadow wordmark)
   repl.ts          Interactive chat loop + slash commands
   progress.ts      cli-progress wrapper (per-file + overall bars)
   logger.ts        ora + chalk helpers

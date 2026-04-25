@@ -25,28 +25,26 @@
   <rect width="900" height="260" rx="12" fill="#1b1b1b"/>
 
   <!-- ================================================================ -->
-  <!--  Isometric 4-point starburst (10 cols x 6 rows, 8px cells)       -->
+  <!--  Asymmetric origami icon (10 cols x 6 rows, 8px cells)            -->
   <!--  Geometry from banner.ts:                                         -->
   <!--    ....HH....      H = outline (#a95236)                          -->
-  <!--    ...HTTH...      T = top face (#e8a590)                         -->
-  <!--    HLLLTTRRRH      L = left body (#c96442)                        -->
-  <!--    HLLLTTRRRH      R = right body (#e8c6a0)                       -->
-  <!--    ...HTTH...                                                     -->
+  <!--    ...HTTR...      T = top face (#e8a590)                         -->
+  <!--    ..HLTTRRH.      L = left body (#c96442)                        -->
+  <!--    .HLLTRRRH.      R = right body (#e8c6a0)                       -->
+  <!--    ..HLLRRH..                                                     -->
   <!--    ....HH....                                                     -->
   <!-- ================================================================ -->
   <g transform="translate(42, 72)">
     <!-- Row 0: ....HH.... -->
     <rect x="40" y="0"  width="10" height="10" fill="#a95236"/>
     <rect x="50" y="0"  width="10" height="10" fill="#a95236"/>
-    <!-- Row 1: ...HTTH... -->
+    <!-- Row 1: ...HTTR... -->
     <rect x="30" y="10" width="10" height="10" fill="#a95236"/>
     <rect x="40" y="10" width="10" height="10" fill="#e8a590"/>
     <rect x="50" y="10" width="10" height="10" fill="#e8a590"/>
-    <rect x="60" y="10" width="10" height="10" fill="#a95236"/>
-    <!-- Row 2: HLLLTTRRRH -->
-    <rect x="0"  y="20" width="10" height="10" fill="#a95236"/>
-    <rect x="10" y="20" width="10" height="10" fill="#c96442"/>
-    <rect x="20" y="20" width="10" height="10" fill="#c96442"/>
+    <rect x="60" y="10" width="10" height="10" fill="#e8c6a0"/>
+    <!-- Row 2: ..HLTTRRH. -->
+    <rect x="20" y="20" width="10" height="10" fill="#a95236"/>
     <rect x="30" y="20" width="10" height="10" fill="#c96442"/>
     <rect x="40" y="20" width="10" height="10" fill="#e8a590"/>
     <rect x="50" y="20" width="10" height="10" fill="#e8a590"/>
@@ -54,33 +52,34 @@
     <rect x="70" y="20" width="10" height="10" fill="#e8c6a0"/>
     <rect x="80" y="20" width="10" height="10" fill="#e8c6a0"/>
     <rect x="90" y="20" width="10" height="10" fill="#a95236"/>
-    <!-- Row 3: HLLLTTRRRH -->
-    <rect x="0"  y="30" width="10" height="10" fill="#a95236"/>
-    <rect x="10" y="30" width="10" height="10" fill="#c96442"/>
+    <!-- Row 3: .HLLTRRRH. -->
+    <rect x="10" y="30" width="10" height="10" fill="#a95236"/>
     <rect x="20" y="30" width="10" height="10" fill="#c96442"/>
     <rect x="30" y="30" width="10" height="10" fill="#c96442"/>
     <rect x="40" y="30" width="10" height="10" fill="#e8a590"/>
-    <rect x="50" y="30" width="10" height="10" fill="#e8a590"/>
+    <rect x="50" y="30" width="10" height="10" fill="#e8c6a0"/>
     <rect x="60" y="30" width="10" height="10" fill="#e8c6a0"/>
     <rect x="70" y="30" width="10" height="10" fill="#e8c6a0"/>
     <rect x="80" y="30" width="10" height="10" fill="#e8c6a0"/>
     <rect x="90" y="30" width="10" height="10" fill="#a95236"/>
-    <!-- Row 4: ...HTTH... -->
-    <rect x="30" y="40" width="10" height="10" fill="#a95236"/>
-    <rect x="40" y="40" width="10" height="10" fill="#e8a590"/>
-    <rect x="50" y="40" width="10" height="10" fill="#e8a590"/>
-    <rect x="60" y="40" width="10" height="10" fill="#a95236"/>
+    <!-- Row 4: ..HLLRRH.. -->
+    <rect x="20" y="40" width="10" height="10" fill="#a95236"/>
+    <rect x="30" y="40" width="10" height="10" fill="#c96442"/>
+    <rect x="40" y="40" width="10" height="10" fill="#c96442"/>
+    <rect x="50" y="40" width="10" height="10" fill="#e8c6a0"/>
+    <rect x="60" y="40" width="10" height="10" fill="#e8c6a0"/>
+    <rect x="70" y="40" width="10" height="10" fill="#a95236"/>
     <!-- Row 5: ....HH.... -->
     <rect x="40" y="50" width="10" height="10" fill="#a95236"/>
     <rect x="50" y="50" width="10" height="10" fill="#a95236"/>
   </g>
 
   <!-- ================================================================ -->
-  <!--  Eyebrow: &  A W E S O M E  &                                   -->
+  <!--  Eyebrow: ◈  A W E S O M E  ◈                                   -->
   <!-- ================================================================ -->
   <text x="500" y="68" text-anchor="middle"
         font-family="'SF Mono','Fira Code','JetBrains Mono','Cascadia Code','Consolas',monospace"
-        font-size="15" font-weight="600" letter-spacing="5" fill="url(#eg)">&#x2726;  A W E S O M E  &#x2726;</text>
+        font-size="15" font-weight="600" letter-spacing="5" fill="url(#eg)">&#x25C8;  A W E S O M E  &#x25C8;</text>
 
   <!-- ================================================================ -->
   <!--  Wordmark: MD � TO � PDF                                         -->

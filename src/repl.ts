@@ -624,9 +624,10 @@ function renderPrompt(session: Session): string {
     session.mode === 'dark'
       ? chalk.hex('#5a7a8a')('dark')
       : chalk.hex('#c96442')('light');
+  const mark = chalk.hex('#c96442').bold('\u25c8');
   const tag =
     chalk.hex('#87867f')('[') +
-    chalk.hex('#c96442').bold('\u2726') +
+    mark +
     chalk.hex('#87867f')(' \u00b7 ') +
     modeColored +
     chalk.hex('#87867f')(']');
