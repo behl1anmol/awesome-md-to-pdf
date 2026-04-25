@@ -7,7 +7,7 @@
 <p align="center">
   <strong>Awesome editorial Markdown &rarr; PDF.</strong><br>
   Convert a directory of Markdown files into beautifully styled PDFs.<br>
-  Ships with a Claude/Anthropic-inspired default design and a parser that honors Google's <a href="https://github.com/google/design.md">DESIGN.md spec</a> so you can swap in any spec-compliant <code>DESIGN.md</code> to retheme your output on the fly.
+  Ships with a Claude/Anthropic-inspired default design and a parser that honors Google's <a href="https://github.com/google-labs-code/design.md/blob/main/docs/spec.md">DESIGN.md spec</a> so you can swap in any spec-compliant <code>DESIGN.md</code> to retheme your output on the fly.
 </p>
 
 <p align="center">
