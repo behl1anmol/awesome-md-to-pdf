@@ -1,55 +1,127 @@
 # Designs
 
-Drop any `DESIGN.md` into this folder (or point `--design` at a path anywhere on disk) and awesome-md-to-pdf will render your PDFs in that visual system.
+Drop any `DESIGN.md` into this folder (or point `--design` at a path anywhere on disk)
+and awesome-md-to-pdf will render your PDFs in that visual system.
 
-## Where to get DESIGN.md files
+awesome-md-to-pdf follows Google's [DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)
+(see the local copy at `../../design.md/docs/spec.md`). A spec-compliant
+`DESIGN.md` has two parts:
 
-The easiest source is [getdesign.md](https://getdesign.md) — an open collection of design specs for 60+ popular brands (Stripe, Linear, Vercel, WIRED, Notion, and many more). Each brand page has a **DESIGN.md** tab: open it, copy the content, paste it into a `.md` file, and drop the file here or anywhere on disk.
+1. **YAML frontmatter** between two `---` lines that defines the normative tokens:
+   `colors`, `typography`, `rounded`, `spacing`, and `components`.
+2. **Prose sections** (Overview, Colors, Typography, Layout, Elevation & Depth, Shapes,
+   Components, Do's and Don'ts) that explain the design intent for humans.
 
-Example:
+Only the YAML is parsed. The prose is documentation.
 
-```bash
-# Convert a directory using the Linear design language
-awesome-md-to-pdf docs --design ./designs/linear.md --mode dark
+## Minimal example
 
-# Or from inside the chat REPL:
-/design ./designs/linear.md
-/convert docs
+```yaml
+---
+version: alpha
+name: My Design
+colors:
+  primary: "#3366ff"
+  neutral: "#ffffff"
+  surface: "#ffffff"
+  on-surface: "#111111"
+  outline: "#e2e8f0"
+typography:
+  h1:
+    fontFamily: Inter
+    fontSize: 32pt
+    fontWeight: 700
+    lineHeight: 1.1
+  body-md:
+    fontFamily: Inter
+    fontSize: 11pt
+    fontWeight: 400
+    lineHeight: 1.6
+rounded:
+  sm: 4px
+  md: 8px
+  lg: 12px
+  full: 9999px
+spacing:
+  sm: 8px
+  md: 12px
+  lg: 16px
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "#ffffff"
+    rounded: "{rounded.md}"
+    padding: 8px
+---
+
+# My Design
+
+## Overview
+Clean sans-serif system on white.
+
+## Colors
+- **Primary (Blue):** CTAs and links.
+- **Neutral (White):** The canvas.
+...
 ```
 
-## What gets extracted
+## What gets rendered
 
-The parser (see `src/design.ts`) pulls out:
+| Spec group   | CSS vars emitted                          | Where it shows up in the PDF              |
+| ------------ | ----------------------------------------- | ----------------------------------------- |
+| `colors`     | `--color-<key>` + role aliases            | Every color surface                       |
+| `typography` | `--type-<level>-family/size/weight/line/track` | Headings, body, code                 |
+| `rounded`    | `--rounded-<key>` + `--radius-*`          | Borders on cards, tables, code blocks     |
+| `spacing`    | `--spacing-<key>`                         | Paragraph/list margins                    |
+| `components` | `--component-<name>-<prop>`               | `::: button-primary`, `::: card`, etc. containers and CSS classes |
 
-- **Palette** — from the "Color Palette & Roles" section (always present on getdesign.md files), with the "Quick Color Reference" section acting as a higher-signal override when available.
-- **Typography** — font families for serif/sans/mono from the "Typography Rules" section. Compound labels such as `Body / UI:`, `Monospace / Labels:`, and `Display / Buttons:` are supported — the first keyword wins and the qualifier after the slash is discarded.
-- **Dark mode** — from explicit dark tokens when mentioned; otherwise synthesized by inverting the light palette. A line only contributes to the dark palette when `dark` acts as a **role qualifier** (`dark mode`, `dark surface`, `dark theme page background`); descriptive prose such as `text on dark surfaces` is correctly ignored.
+Color aliases wired into the Claude baseline selectors:
 
-Anything we can't cleanly map falls back to the bundled Claude baseline so the PDF is never worse than the default.
+| Spec color key        | Legacy CSS var         |
+| --------------------- | ---------------------- |
+| `primary`             | `--brand`              |
+| `tertiary`            | `--brand-soft`         |
+| `surface`             | `--bg-surface`         |
+| `on-surface`          | `--text-primary`       |
+| `on-surface-variant`  | `--text-secondary`     |
+| `outline`             | `--border-soft`        |
+| `outline-variant`     | `--border-warm`        |
+| `neutral`/`background`| `--bg-page`            |
+| `error`               | `--error`              |
 
-## Recognized role vocabulary
+Any other color key is emitted verbatim as `--color-<key>` so a `components.*`
+reference to `{colors.surface-container-high}` works out of the box.
 
-For every color literal, the parser builds a **context phrase** from the
-text on both sides of the hex and runs it against a table of
-functional-role synonyms (no brand names). A non-exhaustive cheat sheet:
+## Typography level naming
 
-| Slot | Recognized phrases |
-| --- | --- |
-| `textPrimary` | `all text`, `primary text`, `headings and body`, `pure black`, `true black`, `near black` |
-| `textSecondary` | `secondary text`, `muted text`, `body gray`, `gray 600/700` |
-| `textTertiary` | `tertiary text`, `metadata`, `caption`, `footnote`, `disabled text` |
-| `bgPage` | `page background`, `root background`, `all backgrounds`, `body background`, `canvas`, `pure white` |
-| `bgSurface` | `card surface(s)`, `elevated surface`, `container`, `panel` |
-| `brand` | `primary cta`, `primary button`, `solid buttons`, `cta`, `accent`, `brand color`, `link blue`, `active states` |
-| `brandSoft` | `brand hover`, `cta hover`, `accent hover` |
-| `borderSoft` | `borders`, `borders default`, `subtle border`, `hairline`, `divider` |
-| `error` | `error`, `danger`, `negative red`, `crimson` |
-| `focus` | `focus ring`, `focus outline` |
+The heading selectors in [../themes/base.css](../themes/base.css) read specific
+level names:
 
-When a description names **two or more different role families**
-(`All text, all buttons, all borders`; `Page background, card surfaces`),
-the same color is assigned to every matching slot in a single pass.
+- `h1` ... `h6` -> `--type-hN-*`
+- body paragraphs -> `--type-body-md-*`
+- lead paragraph under H1 -> `--type-body-lg-*`
+- inline / block code -> `--type-code-*`
+
+Using these names maximizes control. Other names (`headline-xl`, `display-lg`,
+`label-md`, etc.) still emit vars but need a custom selector to take effect.
+
+## Token references
+
+Any component property can reference another token via `{group.name}` syntax:
+
+```yaml
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    rounded: "{rounded.md}"
+    padding: 12px
+```
+
+References are resolved at parse time, error on cycles, and error on unresolved
+paths.
 
 ## Bundled designs
 
-- `claude.md` — the reference design used for development. It's a condensed copy of the full Claude DESIGN.md from getdesign.md.
+- `claude.md` -- the Claude baseline, used automatically when no `--design` is
+  passed.
+- Additional fixtures live in `../../samples/design-fixtures/`.

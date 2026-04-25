@@ -114,11 +114,15 @@ If KaTeX changes its CSS path layout, update the regex AND verify math still ren
 
 ## `buildDesignOverride(design)`
 
-Maps a parsed `DesignTokens` to two CSS blocks (one for `:root`, one for `[data-mode="dark"]`). Implementation details:
+Maps a parsed `DesignTokens` (spec-compliant YAML) to a single `:root { ... }` CSS block of custom-property overrides. Implementation details:
 
-- `paletteToCss(palette)` — maps `PaletteTokens` field names to CSS custom property names. The mapping is the canonical token table; see `design-system-knowledge` skill for the list.
-- `fontRules` — emits `--font-serif`, `--font-sans`, `--font-mono` if present, with `appendFallback` attached.
-- Empty palettes emit nothing — no stray `:root { }` blocks.
+- Colors: one `--color-<key>` per `colors` entry, plus canonical aliases (`--brand`, `--bg-surface`, `--text-primary`, `--border-soft`, etc.) for legacy selectors. See the `design-system-knowledge` skill for the full alias table.
+- Typography: per-level vars `--type-<level>-family/size/weight/line/track`; the heading selectors in [src/themes/base.css](src/themes/base.css) read `h1`...`h6`, `body-md`, `body-lg`, `body-sm`, `code`, `label-md`.
+- Rounded: `--rounded-<key>` plus legacy `--radius-sm/md/lg/xl` aliases.
+- Spacing: `--spacing-<key>`, used by paragraph/list margins via `var()`.
+- Components: `--component-<name>-<prop>` with `{token.path}` refs already resolved by the parser.
+- `appendFallback` attaches a generic family cascade (Georgia / system-ui / JetBrains Mono) to any author-supplied fontFamily so the PDF renders even when the authored font isn't installed.
+- Empty token groups emit nothing — no stray `:root { }` blocks.
 
 ## `buildPageChromeCss(opts)`
 

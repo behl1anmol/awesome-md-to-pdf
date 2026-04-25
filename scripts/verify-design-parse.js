@@ -2,13 +2,24 @@
 /*
  * Regression guard for the DESIGN.md parser.
  *
- * Parses every fixture in [samples/design-fixtures/](../samples/design-fixtures/)
- * plus the bundled Claude baseline and the top-level Figma-inspired
- * Design.md, then prints a grid of extracted token values. Also asserts a
- * small set of invariants -- the Claude baseline must produce a complete
- * palette, and the Figma fixture must resolve the functional roles we
- * rely on in the visual tests (textPrimary, brand, bgSurface all black or
- * white, and a monospace font family).
+ * Parses every fixture in [samples/design-fixtures/](../samples/design-fixtures/),
+ * the bundled Claude baseline [src/designs/claude.md](../src/designs/claude.md),
+ * and the official Google DESIGN.md examples shipped in sibling workspace
+ * [../../design.md/examples/](../../design.md/examples/). Prints a summary
+ * grid and asserts a small set of invariants that every spec-compliant
+ * DESIGN.md must satisfy:
+ *
+ *   - `colors.primary` is a valid hex color
+ *   - `typography['body-md'].fontFamily` resolves
+ *   - `rounded.md` is a valid Dimension
+ *   - every `{token.path}` reference in `components` resolves
+ *
+ * Also asserts negative paths:
+ *
+ *   - a DESIGN.md with no YAML throws NO_YAML_FOUND
+ *   - a DESIGN.md with duplicate `## Colors` throws DUPLICATE_SECTION
+ *   - a DESIGN.md with a YAML syntax error throws YAML_PARSE_ERROR
+ *   - a DESIGN.md with an unresolved {ref} throws UNRESOLVED_REF
  *
  * Usage:
  *   npm run verify:design
@@ -20,34 +31,22 @@
 
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const DIST = path.resolve(__dirname, '..', 'dist');
-const { parseDesignMd } = require(path.join(DIST, 'design'));
+const { parseDesignMd, DesignParseError } = require(path.join(DIST, 'design'));
 
 const ROOT = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(ROOT, 'samples', 'design-fixtures');
 const CLAUDE = path.join(ROOT, 'src', 'designs', 'claude.md');
-const FIGMA = path.join(ROOT, 'Design.md');
+const SPEC_EXAMPLES = path.resolve(ROOT, '..', 'design.md', 'examples');
 
-const SLOTS = [
-  'bgPage',
-  'bgSurface',
-  'bgSand',
-  'textPrimary',
-  'textSecondary',
-  'textTertiary',
-  'brand',
-  'brandSoft',
-  'borderSoft',
-  'borderWarm',
-  'error',
-  'focus',
-];
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const DIM_RE = /^-?\d*\.?\d+(px|em|rem|pt|%)$/i;
 
 function listDesigns() {
   const out = [];
   if (fs.existsSync(CLAUDE)) out.push({ label: 'claude (baseline)', file: CLAUDE });
-  if (fs.existsSync(FIGMA)) out.push({ label: 'figma (top-level)', file: FIGMA });
 
   if (fs.existsSync(FIXTURE_DIR)) {
     for (const name of fs.readdirSync(FIXTURE_DIR).sort()) {
@@ -57,6 +56,15 @@ function listDesigns() {
         label: path.basename(name, '.md'),
         file: path.join(FIXTURE_DIR, name),
       });
+    }
+  }
+
+  if (fs.existsSync(SPEC_EXAMPLES)) {
+    for (const subdir of fs.readdirSync(SPEC_EXAMPLES).sort()) {
+      const candidate = path.join(SPEC_EXAMPLES, subdir, 'DESIGN.md');
+      if (fs.existsSync(candidate)) {
+        out.push({ label: `spec:${subdir}`, file: candidate });
+      }
     }
   }
 
@@ -70,19 +78,30 @@ function pad(s, n) {
 }
 
 function printGrid(rows) {
-  const labelW = Math.max(18, ...rows.map((r) => r.label.length)) + 2;
-  const slotW = 9;
+  const labelW = Math.max(22, ...rows.map((r) => r.label.length)) + 2;
 
-  process.stdout.write(pad('design', labelW));
-  for (const s of SLOTS) process.stdout.write(pad(s.slice(0, slotW), slotW + 1));
-  process.stdout.write('mono?\n');
+  const headers = ['design', 'primary', 'neutral', 'surface', 'on-surface', 'outline', 'body-md.font', 'rounded.md', 'sections', 'comps'];
+  process.stdout.write(pad(headers[0], labelW));
+  for (const h of headers.slice(1)) process.stdout.write(pad(h, 14));
+  process.stdout.write('\n');
 
   for (const row of rows) {
     process.stdout.write(pad(row.label, labelW));
-    for (const s of SLOTS) {
-      process.stdout.write(pad(row.light[s] ?? '--', slotW + 1));
+    if (row.error) {
+      process.stdout.write('  ERROR: ' + row.error);
+      process.stdout.write('\n');
+      continue;
     }
-    process.stdout.write(row.fonts.mono ? 'yes' : '--');
+    const t = row.tokens;
+    process.stdout.write(pad(t.colors.primary ?? '--', 14));
+    process.stdout.write(pad(t.colors.neutral ?? t.colors.background ?? '--', 14));
+    process.stdout.write(pad(t.colors.surface ?? '--', 14));
+    process.stdout.write(pad(t.colors['on-surface'] ?? '--', 14));
+    process.stdout.write(pad(t.colors.outline ?? '--', 14));
+    process.stdout.write(pad((t.typography['body-md'] && t.typography['body-md'].fontFamily) || '--', 14));
+    process.stdout.write(pad(t.rounded.md ?? '--', 14));
+    process.stdout.write(pad(String(t.sections.length), 14));
+    process.stdout.write(pad(String(Object.keys(t.components).length), 14));
     process.stdout.write('\n');
   }
 }
@@ -91,56 +110,51 @@ function assert(cond, msg, failures) {
   if (!cond) failures.push(msg);
 }
 
-function check(rows) {
+function checkFixture(label, tokens) {
   const failures = [];
-  const find = (label) => rows.find((r) => r.label.startsWith(label));
 
-  const claude = find('claude');
-  if (claude) {
-    for (const required of ['bgPage', 'bgSurface', 'textPrimary', 'textSecondary', 'brand', 'borderSoft']) {
-      assert(claude.light[required], `claude: missing ${required}`, failures);
+  assert(tokens.colors.primary, `${label}: colors.primary is required`, failures);
+  if (tokens.colors.primary) {
+    assert(HEX_RE.test(tokens.colors.primary), `${label}: colors.primary is not a valid hex (${tokens.colors.primary})`, failures);
+  }
+  for (const [k, v] of Object.entries(tokens.colors)) {
+    assert(HEX_RE.test(v), `${label}: colors.${k} is not a valid hex (${v})`, failures);
+  }
+
+  const body = tokens.typography['body-md'] || tokens.typography['body'] || tokens.typography['body-lg'];
+  assert(body && body.fontFamily, `${label}: typography.body-md (or body/body-lg) with fontFamily is required`, failures);
+
+  if (tokens.rounded && tokens.rounded.md) {
+    assert(DIM_RE.test(tokens.rounded.md), `${label}: rounded.md is not a valid Dimension (${tokens.rounded.md})`, failures);
+  }
+
+  // Components should already have refs resolved by the parser -- any remaining
+  // `{...}` literal is evidence that a ref wasn't applied.
+  for (const [compName, props] of Object.entries(tokens.components)) {
+    for (const [prop, val] of Object.entries(props)) {
+      if (typeof val === 'string' && /^\{[^}]+\}$/.test(val.trim())) {
+        failures.push(`${label}: components.${compName}.${prop} has unresolved ref ${val}`);
+      }
     }
-    assert(claude.fonts.sans, 'claude: missing fonts.sans', failures);
-    assert(claude.fonts.serif, 'claude: missing fonts.serif', failures);
-    assert(claude.fonts.mono, 'claude: missing fonts.mono', failures);
-  }
-
-  const figma = find('figma (top-level)') || find('figma');
-  if (figma) {
-    assert(figma.light.textPrimary === '#000000', `figma: textPrimary should be #000000, got ${figma.light.textPrimary}`, failures);
-    assert(figma.light.brand === '#000000', `figma: brand should be #000000, got ${figma.light.brand}`, failures);
-    assert(figma.light.bgSurface === '#ffffff', `figma: bgSurface should be #ffffff, got ${figma.light.bgSurface}`, failures);
-    assert(figma.light.bgPage === '#ffffff', `figma: bgPage should be #ffffff, got ${figma.light.bgPage}`, failures);
-    assert(figma.fonts.mono && /figmaMono/.test(figma.fonts.mono), `figma: fonts.mono missing or wrong, got ${figma.fonts.mono}`, failures);
-  }
-
-  const vercel = find('vercel');
-  if (vercel) {
-    assert(vercel.light.bgPage === '#ffffff', `vercel: bgPage #ffffff`, failures);
-    assert(vercel.light.textPrimary === '#000000', `vercel: textPrimary #000000`, failures);
-  }
-
-  const apple = find('apple');
-  if (apple) {
-    assert(apple.light.bgPage === '#ffffff', `apple: bgPage #ffffff`, failures);
-    assert(apple.light.textPrimary === '#000000', `apple: textPrimary #000000`, failures);
-  }
-
-  const uber = find('uber');
-  if (uber) {
-    assert(uber.light.textPrimary === '#000000', `uber: textPrimary #000000 (from "All text, all buttons")`, failures);
-    assert(uber.light.bgPage === '#ffffff', `uber: bgPage #ffffff (from "Page background, card surfaces")`, failures);
-    assert(uber.fonts.sans && /UberMoveText/.test(uber.fonts.sans), `uber: Body / UI compound label must parse to sans (got ${uber.fonts.sans})`, failures);
-    assert(uber.fonts.mono && /UberMono/.test(uber.fonts.mono), `uber: Monospace / Code compound label must parse to mono`, failures);
-  }
-
-  const stripe = find('stripe');
-  if (stripe) {
-    assert(stripe.light.brand === '#635bff', `stripe: brand should be indigo #635bff (from "Primary CTA")`, failures);
-    assert(stripe.light.borderSoft === '#e3e8ee', `stripe: borderSoft from "Border Default"`, failures);
   }
 
   return failures;
+}
+
+function checkNegative(label, build, expectedCode) {
+  const tmp = path.join(os.tmpdir(), `verify-design-${Date.now()}-${Math.random().toString(16).slice(2)}.md`);
+  fs.writeFileSync(tmp, build(), 'utf8');
+  try {
+    parseDesignMd(tmp);
+  } catch (err) {
+    if (err instanceof DesignParseError && err.code === expectedCode) {
+      return [];
+    }
+    return [`${label}: expected ${expectedCode}, got ${err && err.code ? err.code : err}`];
+  } finally {
+    try { fs.unlinkSync(tmp); } catch { /* ignore */ }
+  }
+  return [`${label}: expected ${expectedCode}, but parseDesignMd did not throw`];
 }
 
 function main() {
@@ -148,22 +162,102 @@ function main() {
   const rows = designs.map(({ label, file }) => {
     try {
       const tokens = parseDesignMd(file);
-      return { label, light: tokens.light, dark: tokens.dark, fonts: tokens.fonts };
+      return { label, tokens };
     } catch (err) {
-      return { label, light: {}, dark: {}, fonts: {}, error: String(err && err.message || err) };
+      return { label, error: String((err && err.message) || err) };
     }
   });
 
   printGrid(rows);
 
-  const failures = check(rows);
+  const failures = [];
+
+  for (const row of rows) {
+    if (row.error) {
+      failures.push(`${row.label}: parse error -- ${row.error}`);
+      continue;
+    }
+    failures.push(...checkFixture(row.label, row.tokens));
+  }
+
+  // --- Negative path checks -------------------------------------------------
+  failures.push(...checkNegative(
+    'no-yaml',
+    () => '# Just prose\n\nNo frontmatter, no fenced yaml.\n',
+    'NO_YAML_FOUND'
+  ));
+
+  failures.push(...checkNegative(
+    'yaml-syntax',
+    () => '---\nname: broken\ncolors:\n  primary: "#ffffff\n    invalid\n---\n# Broken\n',
+    'YAML_PARSE_ERROR'
+  ));
+
+  failures.push(...checkNegative(
+    'duplicate-colors-section',
+    () => [
+      '---',
+      'name: dup',
+      'colors:',
+      '  primary: "#000000"',
+      'typography:',
+      '  body-md:',
+      '    fontFamily: Inter',
+      '---',
+      '',
+      '# Dup',
+      '',
+      '## Colors',
+      'first',
+      '',
+      '## Colors',
+      'second',
+      '',
+    ].join('\n'),
+    'DUPLICATE_SECTION'
+  ));
+
+  failures.push(...checkNegative(
+    'unresolved-ref',
+    () => [
+      '---',
+      'name: bad-ref',
+      'colors:',
+      '  primary: "#000000"',
+      'typography:',
+      '  body-md:',
+      '    fontFamily: Inter',
+      'components:',
+      '  button-primary:',
+      '    backgroundColor: "{colors.nonexistent}"',
+      '---',
+      '# BadRef',
+      '',
+    ].join('\n'),
+    'UNRESOLVED_REF'
+  ));
+
+  failures.push(...checkNegative(
+    'invalid-color',
+    () => [
+      '---',
+      'name: bad-color',
+      'colors:',
+      '  primary: "not-a-color"',
+      '---',
+      '# BadColor',
+      '',
+    ].join('\n'),
+    'INVALID_COLOR'
+  ));
+
   if (failures.length) {
     console.error('\n[verify-design] FAIL');
     for (const f of failures) console.error('  - ' + f);
     process.exit(1);
   }
 
-  console.log('\n[verify-design] OK (' + rows.length + ' designs parsed)');
+  console.log('\n[verify-design] OK (' + rows.length + ' designs parsed, all invariants held)');
 }
 
 main();

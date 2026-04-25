@@ -83,10 +83,74 @@ export function createMarkdown(opts: CreateMarkdownOptions = {}): MarkdownIt {
     });
   }
 
+  // DESIGN.md component containers: ::: button-primary / chip / card / ...
+  // Emits a <div class="component-<name>"> wrapper that the CSS in
+  // themes/base.css styles via --component-<name>-* custom properties
+  // emitted by src/template.ts from the parsed DESIGN.md.
+  for (const comp of DESIGN_COMPONENT_KEYS) {
+    md.use(container, comp, {
+      render(tokens: Token[], idx: number): string {
+        const token = tokens[idx];
+        if (token.nesting === 1) {
+          return `<div class="component-${comp}">\n`;
+        }
+        return '</div>\n';
+      },
+    });
+  }
+
   overrideImageRenderer(md, sourcePath);
   overrideLinkRenderer(md);
+  addComponentClassesToTaskLists(md);
 
   return md;
+}
+
+/**
+ * Component keys the spec recognizes. Each gets a `::: <key>` fenced
+ * container registered on the markdown-it instance. Unknown components
+ * listed in a DESIGN.md still emit --component-<name>-* CSS vars via
+ * src/template.ts, but don't get a markdown shortcut.
+ */
+const DESIGN_COMPONENT_KEYS = [
+  'button-primary',
+  'button-secondary',
+  'button-tertiary',
+  'chip',
+  'card',
+  'badge',
+  'tooltip',
+  'input-field',
+  'list-item',
+] as const;
+
+/**
+ * Tack `.component-checkbox` onto task-list checkboxes so DESIGN.md's
+ * `components.checkbox` styling (accent-color via --component-checkbox-*)
+ * takes effect. markdown-it-task-lists already emits the checkbox input;
+ * this post-processes the rendered HTML with a minimal core rule so we
+ * don't need to fork the plugin.
+ */
+function addComponentClassesToTaskLists(md: MarkdownIt): void {
+  const defaultHtmlInlineRender =
+    md.renderer.rules.html_inline ??
+    ((tokens, idx, _opts, _env, self) => self.renderToken(tokens, idx, _opts));
+
+  md.renderer.rules.html_inline = function (tokens, idx, options, env, self): string {
+    const token = tokens[idx];
+    // markdown-it-task-lists emits `<input …>` as html_inline when `label: true`.
+    if (
+      token.content.startsWith('<input') &&
+      token.content.includes('task-list-item-checkbox') &&
+      !token.content.includes('component-checkbox')
+    ) {
+      token.content = token.content.replace(
+        /class="([^"]*)task-list-item-checkbox([^"]*)"/,
+        'class="$1task-list-item-checkbox component-checkbox$2"'
+      );
+    }
+    return defaultHtmlInlineRender(tokens, idx, options, env, self);
+  };
 }
 
 /**

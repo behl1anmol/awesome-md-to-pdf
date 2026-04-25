@@ -7,10 +7,11 @@ nav_order: 6
 # Designs
 {: .no_toc }
 
-`DESIGN.md` is a plain-Markdown, human-authored specification for a brand's
-palette and typography. awesome-md-to-pdf parses it and layers the tokens
-over the Claude baseline, so every parsed slot wins and every missing slot
-falls back gracefully.
+awesome-md-to-pdf follows Google's official
+[DESIGN.md spec](https://github.com/google-code-labs/design.md). A `DESIGN.md` file ships
+its design tokens as **YAML frontmatter** between two `---` lines; the prose
+below is documentation. awesome-md-to-pdf parses the YAML, resolves
+`{token.path}` references, and injects CSS custom properties for every group.
 {: .fs-5 .fw-300 }
 
 <details open markdown="block">
@@ -20,127 +21,188 @@ falls back gracefully.
 {:toc}
 </details>
 
-## Using a design from getdesign.md
+## Minimum viable DESIGN.md
 
-[getdesign.md](https://getdesign.md) is an open collection of `DESIGN.md`
-specs for 60+ popular brands (Stripe, Linear, Vercel, WIRED, Notion, ...).
+```markdown
+---
+version: alpha
+name: My Brand
+colors:
+  primary: "#3366ff"
+  neutral: "#ffffff"
+  surface: "#ffffff"
+  on-surface: "#111111"
+  outline: "#e2e8f0"
+typography:
+  h1:
+    fontFamily: Inter
+    fontSize: 32pt
+    fontWeight: 700
+    lineHeight: 1.1
+  body-md:
+    fontFamily: Inter
+    fontSize: 11pt
+    fontWeight: 400
+    lineHeight: 1.6
+rounded:
+  sm: 4px
+  md: 8px
+  lg: 12px
+  full: 9999px
+spacing:
+  sm: 8px
+  md: 12px
+  lg: 16px
+components:
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "#ffffff"
+    rounded: "{rounded.md}"
+    padding: 8px
+---
 
-1. Open the brand page, e.g. `https://getdesign.md/linear.app/design-md`.
-2. Click the **DESIGN.md** tab.
-3. Copy the markdown into a file, e.g. `designs/linear.md`.
-4. Run:
+# My Brand
 
-   ```bash
-   awesome-md-to-pdf docs --design designs/linear.md --mode dark
-   ```
+## Overview
+A clean sans-serif system on white.
 
-Or from inside [chat mode](./chat-mode):
+## Colors
+- **Primary (Blue):** CTAs and links.
+- **Neutral (White):** The canvas.
+
+## Typography
+Inter at 400 for body, 700 for headlines.
+
+## Layout
+20mm page margin with an 8pt spacing scale.
+```
+
+Run it:
+
+```bash
+awesome-md-to-pdf docs --design my-brand.md
+```
+
+Or inside [chat mode](./chat-mode):
 
 ```text
-/design designs/linear.md
+/design my-brand.md
 /convert docs
 ```
 
 ## The Claude baseline
 
-The default design (no `--design` flag) is bundled. It produces PDFs styled
-after the Anthropic product aesthetic:
+No `--design` flag? awesome-md-to-pdf ships a spec-compliant Claude baseline
+that defines every token group (`colors`, `typography`, `rounded`, `spacing`,
+`components`). Any key a user's `DESIGN.md` omits falls back to the baseline
+via the default values declared in
+[`src/themes/tokens.css`](https://github.com/behl1anmol/awesome-md-to-pdf/blob/main/src/themes/tokens.css).
 
-- Warm parchment canvas (`#f5f4ed`) with ivory surfaces (`#faf9f5`).
-- Serif headings (weight 500) with literary line-height.
-- Terracotta brand accent (`#c96442`) with a coral dark-mode sibling (`#d97757`).
-- Warm-toned neutrals throughout -- no cool blue-grays (except the focus ring).
-- Ring-based depth (`box-shadow: 0 0 0 1px ...`) rather than heavy drop shadows.
+## Token groups
 
-See the full token set at
-[`src/themes/tokens.css`](https://github.com/<owner>/awesome-md-to-pdf/blob/main/src/themes/tokens.css).
+### Colors
 
-## Authoring your own DESIGN.md
+`colors` is a flat `map<string, hex>`. Common keys and how they wire into the
+PDF:
 
-Minimum viable spec:
+| Spec key              | CSS outcome                                |
+| --------------------- | ------------------------------------------ |
+| `primary`             | `--brand`, `--color-primary`               |
+| `secondary`           | `--color-secondary`                        |
+| `tertiary`            | `--brand-soft`, `--color-tertiary`         |
+| `neutral`             | `--bg-page`, `--color-neutral`             |
+| `surface`             | `--bg-surface`, code block background      |
+| `on-surface`          | `--text-primary`                           |
+| `on-surface-variant`  | `--text-secondary`                         |
+| `outline`             | `--border-soft`                            |
+| `outline-variant`     | `--border-warm`, `--code-border`           |
+| `error`               | `--error`                                  |
+| `focus`               | `--focus`                                  |
 
-~~~markdown
-# Your Brand
+Any other key (e.g. `surface-container-high`) is emitted verbatim as
+`--color-surface-container-high` so your `components.*` section can reference
+it.
 
-## Color Palette & Roles
+### Typography
 
-- **Brand** `#c96442` -- primary accent, links, CTAs.
-- **Canvas** `#f5f4ed` -- page background.
-- **Surface** `#faf9f5` -- cards, code blocks.
-- **Text Primary** `#141413` -- body copy.
-- **Text Secondary** `#5e5d59` -- meta, captions.
-- **Border Warm** `#e8e6dc` -- dividers.
+`typography` is `map<string, Typography>`. The PDF's heading selectors read
+specific level names:
 
-## Quick Color Reference
+| Typography key   | Where it shows up                         |
+| ---------------- | ----------------------------------------- |
+| `h1` ... `h6`    | Markdown `# H1` ... `###### H6`           |
+| `body-md`        | Paragraphs, table cells, list items       |
+| `body-lg`        | The lead paragraph directly under an H1   |
+| `body-sm`        | Footnotes                                 |
+| `code`           | Inline code and fenced code blocks        |
+| `label-md`       | Component labels (buttons, chips, badges) |
 
-| Token | Hex |
-|---|---|
-| Brand | #c96442 |
-| Canvas | #f5f4ed |
-| Text | #141413 |
+Additional levels (`headline-xl`, `display-lg`, `label-caps`, …) emit vars but
+are not wired into default selectors. Add a custom selector in your own
+stylesheet to use them.
 
-## Typography
+Each `Typography` entry supports `fontFamily`, `fontSize`, `fontWeight`,
+`lineHeight` (dimension or unitless multiplier), `letterSpacing`, `fontFeature`,
+`fontVariation` -- the full spec surface.
 
-- **Serif** `"Iowan Old Style", Georgia, serif` -- headings.
-- **Sans** `"Inter", system-ui, sans-serif` -- body.
-- **Mono** `"JetBrains Mono", monospace` -- code.
-~~~
+### Rounded, spacing
 
-The parser walks the **Color Palette & Roles** section first, then the
-**Quick Color Reference** block if present, and finally falls back to any
-inline hex codes it can find near named roles.
+`rounded` maps scale levels (`sm`, `md`, `lg`, `xl`, `full`) to Dimensions.
+`spacing` accepts Dimensions or raw numbers. The default base.css selectors
+read `--rounded-md`, `--rounded-lg` on cards, code blocks, tables, and
+`--spacing-md` on paragraph margins.
 
-## How the parser discovers roles
+### Components
 
-For every color literal on a line, the parser stitches together a
-**context phrase** from the text **before** the color (the name) and the
-text **after** the color (the description) and runs that phrase against
-a table of functional-role synonyms. Descriptions carry most of the
-signal because the name is typically brand-specific (`Pure Black`,
-`Geist Blue`, `Signal Orange`) while the description is written in
-universal English.
+`components` is `map<string, map<string, value | {ref}>>`. Supported recognized
+keys include `button-primary`, `button-secondary`, `button-tertiary`, `chip`,
+`badge`, `card`, `tooltip`, `input-field`, and `list-item`. Each renders as a
+`.component-<name>` CSS class; triggering the class inside markdown uses
+`markdown-it-container` syntax:
 
-The recognized functional vocabulary is:
+```markdown
+::: button-primary
+Submit
+:::
 
-- `textPrimary` -- `all text`, `primary text`, `headings and body`,
-  `pure black`, `true black`, `near black`.
-- `textSecondary` -- `secondary text`, `muted text`, `body gray`,
-  `gray 600/700`.
-- `textTertiary` -- `tertiary text`, `metadata`, `caption`, `footnote`,
-  `disabled text`, `gray 400/500`.
-- `bgPage` -- `page background`, `root background`, `all backgrounds`,
-  `body background`, `primary page background`, `canvas`, `pure white`.
-- `bgSurface` -- `card surface(s)`, `card background`, `elevated
-  surface`, `container`, `panel`.
-- `bgSand` -- `section background`, `alternate background`.
-- `brand` -- `primary cta`, `primary button`, `solid buttons`, `cta`,
-  `accent`, `brand color`, `link blue`, `active states`.
-- `brandSoft` -- `brand hover`, `cta hover`, `accent hover`, `hover
-  color`.
-- `borderSoft` -- `borders`, `borders default`, `subtle border`,
-  `hairline`, `divider`.
-- `borderWarm` -- `borders strong`, `section divider`.
-- `error` -- `error`, `danger`, `negative red`, `crimson`.
-- `focus` -- `focus ring`, `focus outline`, `focus color`.
+::: card
+## Feature card title
+Card body copy goes here.
+:::
+```
 
-A phrase that mentions **two or more different role families** -- such
-as `All text, all buttons, all borders` or `Page background, card
-surfaces` -- is treated as a **multi-role declaration** and assigns the
-same color to every matching slot in one pass.
+Component properties (`backgroundColor`, `textColor`, `rounded`, `padding`,
+`borderColor`, etc.) may reference other tokens:
 
-Font lines accept compound labels (`Body / UI:`, `Monospace / Labels:`,
-`Display / Buttons:`); the first keyword is taken as the authoritative
-role and the qualifier after the slash is discarded.
+```yaml
+components:
+  card:
+    backgroundColor: "{colors.surface}"
+    rounded: "{rounded.xl}"
+    padding: "{spacing.lg}"
+    borderColor: "{colors.outline}"
+```
 
-## Dark mode
+References are resolved at parse time. Cycles and unresolved paths are hard
+errors.
 
-If the `DESIGN.md` mentions dark-mode tokens explicitly (often as a nested
-heading or a second palette block), those are used verbatim. Otherwise
-dark-mode tokens are synthesized by inversion + warm bias.
+## Dimension units
+
+The spec requires `px | em | rem`. awesome-md-to-pdf additionally accepts
+`pt` and `%` because it targets print-layout PDFs where `pt` is idiomatic --
+Chromium's print pipeline resolves both. Stick to `px` for portability across
+consumers.
+
+## Section ordering
+
+The spec requires `Overview -> Colors -> Typography -> Layout -> Elevation &
+Depth -> Shapes -> Components -> Do's and Don'ts`. Unknown section headings are
+preserved; **duplicate canonical sections error** (two `## Colors` headings is
+a hard failure).
 
 ## Overriding just the accent
 
-Don't need a whole design -- just a different link color?
+Don't need a whole DESIGN.md -- just a different link color?
 
 ```bash
 awesome-md-to-pdf docs --accent "#0ea5e9"
@@ -153,19 +215,27 @@ Inside chat mode:
 /accent reset
 ```
 
+`--accent` overrides `--brand` / `--color-primary` even when a DESIGN.md is
+loaded.
+
 ## Inspecting a parsed design
 
 ```text
-/design designs/linear.md
+/design designs/my-brand.md
 /design info
 ```
 
-prints the palette and font stacks extracted from the file so you can
-sanity-check the parser before running a batch.
+prints the full parsed token set -- colors, typography, rounded, spacing,
+components, plus any non-fatal warnings -- so you can sanity-check the parse
+before running a batch.
 
 ## Implementation pointer
 
 The parser lives at
-[`src/design.ts`](https://github.com/<owner>/awesome-md-to-pdf/blob/main/src/design.ts).
-It's a forgiving regex + synonym table; any slot it can't cleanly identify
-inherits from the Claude baseline so the output never breaks.
+[`src/design.ts`](https://github.com/behl1anmol/awesome-md-to-pdf/blob/main/src/design.ts).
+The spec-to-CSS emitter lives at
+[`src/template.ts`](https://github.com/behl1anmol/awesome-md-to-pdf/blob/main/src/template.ts).
+The CSS variables those emit are consumed by
+[`src/themes/base.css`](https://github.com/behl1anmol/awesome-md-to-pdf/blob/main/src/themes/base.css)
+and
+[`src/themes/tokens.css`](https://github.com/behl1anmol/awesome-md-to-pdf/blob/main/src/themes/tokens.css).

@@ -11,7 +11,8 @@ permalink: /
 
 Awesome editorial Markdown to PDF. Convert a directory of Markdown files
 into beautifully styled PDFs with a Claude/Anthropic-inspired default design
-or any `DESIGN.md` from [getdesign.md](https://getdesign.md).
+or any `DESIGN.md` that follows Google's
+[DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md).
 {: .fs-6 .fw-300 }
 
 [Get started now](./getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
@@ -67,14 +68,16 @@ awesome-md-to-pdf ./my-notes -o ./pdf --toc --cover --mode light
 Most Markdown-to-PDF tools produce either CMS-grade corporate output or
 plain HTML-print. `awesome-md-to-pdf` aims for something rarer: editorial
 typography that feels published. Warm parchment canvas, serif headlines,
-ring-based depth, terracotta accents. You can swap in any `DESIGN.md`
-from [getdesign.md](https://getdesign.md) and the output re-themes itself.
+ring-based depth, terracotta accents. You can swap in any spec-compliant
+`DESIGN.md` and the output re-themes itself: colors, typography, rounded
+corners, spacing, and component styling all flow from the file's YAML
+frontmatter.
 
 ## What's inside
 
 - **[Chat mode](./chat-mode)** -- slash commands, ghost hints, live progress bars.
 - **[One-shot CLI](./one-shot-mode)** -- scriptable flags for CI pipelines.
-- **[Designs](./designs)** -- how the `DESIGN.md` parser works and how to pull tokens from getdesign.md.
+- **[Designs](./designs)** -- spec-compliant `DESIGN.md` parsing, the token surface, and how to author your own.
 - **[Themes & modes](./themes-and-modes)** -- light, dark, accent overrides.
 - **[Markdown features](./markdown-features)** -- everything from Mermaid to KaTeX to task lists.
 - **[Architecture](./architecture)** -- module map of the `src/` tree.

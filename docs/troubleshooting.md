@@ -48,10 +48,11 @@ on its own with `--concurrency 1` to get a clean trace:
 awesome-md-to-pdf path/to/just-this-one.md --concurrency 1
 ```
 
-## Fonts look different than on getdesign.md
+## Fonts look different than in a design reference
 
-Anthropic Serif / Sans / Mono are not public fonts. The tool falls back
-to Georgia / system-ui / JetBrains Mono, which are close analogues.
+Brand fonts named inside a `DESIGN.md` (Anthropic Serif, Geist, Inter Variable,
+UberMove, etc.) are often not public system fonts. The tool falls back to
+Georgia / system-ui / JetBrains Mono, which are close analogues.
 
 If your `DESIGN.md` names a specific font and the system doesn't have it,
 Chromium uses the cascading fallback automatically -- the PDF will render

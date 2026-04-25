@@ -3,7 +3,7 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import { buildMermaidScript } from './mermaid-runtime';
 import type { RenderMode } from './prompt';
-import type { DesignTokens, PaletteTokens } from './design';
+import type { DesignTokens, Typography } from './design';
 
 const THEMES_DIR = path.join(__dirname, 'themes');
 
@@ -240,60 +240,198 @@ ${pageNumbers || footerText ? '.page { padding-bottom: 10mm; }' : ''}
 }
 
 /**
- * Map a parsed DESIGN.md token set to CSS custom-property overrides. Any
- * slot left undefined falls through to the Claude baseline defined in
- * `themes/tokens.css`. Emits two blocks: one for `:root` (light) and one
- * for `[data-mode="dark"]`.
+ * Map a parsed DESIGN.md token set to CSS custom-property overrides.
+ *
+ * Emits five families of variables, all on `:root` because the spec doesn't
+ * distinguish light/dark at the token level (dark mode is re-rendered from
+ * whatever the author shipped):
+ *
+ *   --color-<key>          per entry in `colors`
+ *   --type-<level>-*       per entry in `typography` (family/size/weight/line/track)
+ *   --rounded-<key>        per entry in `rounded`
+ *   --spacing-<key>        per entry in `spacing`
+ *   --component-<name>-*   per property in `components` (refs pre-resolved)
+ *
+ * Legacy aliases (`--brand`, `--text-primary`, `--bg-page`, …) are also
+ * emitted so existing CSS selectors continue to render without touching
+ * base.css. The mapping is intentionally opinionated because the spec's
+ * token names (primary/secondary/tertiary/neutral/surface/on-surface/outline)
+ * must still drive a PDF theme.
  */
 function buildDesignOverride(design: DesignTokens): string {
-  const light = paletteToCss(design.light);
-  const dark = paletteToCss(design.dark);
+  const decls: string[] = [];
 
-  const fontRules: string[] = [];
-  if (design.fonts.serif) {
-    fontRules.push(`--font-serif: ${appendFallback(design.fonts.serif, 'serif')};`);
-  }
-  if (design.fonts.sans) {
-    fontRules.push(`--font-sans: ${appendFallback(design.fonts.sans, 'sans')};`);
-  }
-  if (design.fonts.mono) {
-    fontRules.push(`--font-mono: ${appendFallback(design.fonts.mono, 'mono')};`);
+  // --- colors ---------------------------------------------------------------
+  for (const [k, v] of Object.entries(design.colors)) {
+    decls.push(`--color-${k}: ${v};`);
   }
 
-  const blocks: string[] = [];
-  if (light.length || fontRules.length) {
-    blocks.push(`:root { ${[...light, ...fontRules].join(' ')} }`);
+  // Canonical role aliases. Only write an alias if the author shipped the
+  // source token; otherwise the Claude baseline in themes/tokens.css stays
+  // in effect for that legacy var.
+  const ALIAS_MAP: Array<[string, string]> = [
+    ['primary', '--brand'],
+    ['tertiary', '--brand-soft'],
+    ['error', '--error'],
+    ['surface', '--bg-surface'],
+    ['on-surface', '--text-primary'],
+    ['on-surface-variant', '--text-secondary'],
+    ['outline', '--border-soft'],
+    ['outline-variant', '--border-warm'],
+    ['neutral', '--bg-page'],
+    ['background', '--bg-page'],
+    ['on-background', '--text-primary'],
+  ];
+  for (const [src, dst] of ALIAS_MAP) {
+    if (design.colors[src]) decls.push(`${dst}: ${design.colors[src]};`);
   }
-  if (dark.length) {
-    blocks.push(`[data-mode="dark"] { ${dark.join(' ')} }`);
+
+  // A few compound inferences: when the author didn't provide one of the
+  // secondary-tier roles, fall back to the best available token. This keeps
+  // text/background contrast sane across fixtures that only define a
+  // primary/neutral pair.
+  if (!design.colors['surface'] && design.colors['neutral']) {
+    decls.push(`--bg-surface: ${design.colors['neutral']};`);
   }
-  return blocks.join('\n');
+  if (!design.colors['on-surface'] && design.colors['neutral']) {
+    // Very crude: treat neutral as background and pick primary for text.
+    const primary = design.colors['primary'];
+    if (primary) decls.push(`--text-primary: ${primary};`);
+  }
+
+  // Code-surface fallbacks built from surface/outline so fenced code blocks
+  // don't jump off the palette.
+  if (design.colors['surface']) {
+    decls.push(`--code-bg: ${design.colors['surface']};`);
+    decls.push(`--code-inline-bg: ${design.colors['surface']};`);
+  }
+  if (design.colors['outline-variant']) {
+    decls.push(`--code-border: ${design.colors['outline-variant']};`);
+  } else if (design.colors['outline']) {
+    decls.push(`--code-border: ${design.colors['outline']};`);
+  }
+
+  // --- typography ----------------------------------------------------------
+  // Emit per-level CSS vars so base.css can pick them up. Also set
+  // --font-sans / --font-serif / --font-mono from the first matching level
+  // so fallbacks still land where base.css expects them.
+  const fontSans = pickFontFamily(design.typography, ['body-md', 'body-lg', 'body', 'body-sm']);
+  const fontSerif = pickFontFamily(design.typography, [
+    'headline-xl',
+    'headline-lg',
+    'headline-md',
+    'headline',
+    'display-lg',
+    'display',
+    'h1',
+  ]);
+  const fontMono = pickFontFamily(design.typography, [
+    'code',
+    'mono',
+    'label-caps',
+    'label-md',
+    'label-sm',
+  ]);
+
+  if (fontSans) decls.push(`--font-sans: ${appendFallback(fontSans, 'sans')};`);
+  if (fontSerif) decls.push(`--font-serif: ${appendFallback(fontSerif, 'serif')};`);
+  if (fontMono) decls.push(`--font-mono: ${appendFallback(fontMono, 'mono')};`);
+
+  for (const [level, typo] of Object.entries(design.typography)) {
+    decls.push(...typographyToCssVars(`--type-${level}`, typo));
+  }
+
+  // --- rounded -------------------------------------------------------------
+  for (const [k, v] of Object.entries(design.rounded)) {
+    decls.push(`--rounded-${k}: ${v};`);
+  }
+  // Legacy --radius-* aliases for existing base.css selectors (sm/md/lg/xl).
+  const RADIUS_LEVELS: Array<[string, string]> = [
+    ['sm', '--radius-sm'],
+    ['md', '--radius-md'],
+    ['lg', '--radius-lg'],
+    ['xl', '--radius-xl'],
+  ];
+  for (const [k, dst] of RADIUS_LEVELS) {
+    if (design.rounded[k]) decls.push(`${dst}: ${design.rounded[k]};`);
+  }
+
+  // --- spacing -------------------------------------------------------------
+  for (const [k, v] of Object.entries(design.spacing)) {
+    const val = typeof v === 'number' ? `${v}px` : v;
+    decls.push(`--spacing-${k}: ${val};`);
+  }
+
+  // --- components ----------------------------------------------------------
+  const COMP_PROP_MAP: Record<string, string> = {
+    backgroundColor: 'bg',
+    textColor: 'fg',
+    typography: 'typography',
+    rounded: 'rounded',
+    padding: 'padding',
+    size: 'size',
+    height: 'height',
+    width: 'width',
+    borderColor: 'border-color',
+    borderWidth: 'border-width',
+  };
+  for (const [compName, props] of Object.entries(design.components)) {
+    for (const [prop, val] of Object.entries(props)) {
+      const suffix = COMP_PROP_MAP[prop] ?? prop.toLowerCase();
+      decls.push(`--component-${compName}-${suffix}: ${val};`);
+    }
+  }
+
+  if (decls.length === 0) return '';
+  return `:root {\n  ${decls.join('\n  ')}\n}`;
 }
 
-function paletteToCss(palette: PaletteTokens): string[] {
+/**
+ * Emit all CSS vars for a typography token at the given base name.
+ * Example base "--type-h1" produces --type-h1-family, -size, -weight, etc.
+ */
+function typographyToCssVars(base: string, t: Typography): string[] {
   const out: string[] = [];
-  const map: Array<[keyof PaletteTokens, string]> = [
-    ['bgPage', '--bg-page'],
-    ['bgSurface', '--bg-surface'],
-    ['bgSand', '--bg-sand'],
-    ['textPrimary', '--text-primary'],
-    ['textSecondary', '--text-secondary'],
-    ['textTertiary', '--text-tertiary'],
-    ['brand', '--brand'],
-    ['brandSoft', '--brand-soft'],
-    ['borderSoft', '--border-soft'],
-    ['borderWarm', '--border-warm'],
-    ['codeBg', '--code-bg'],
-    ['codeBorder', '--code-border'],
-    ['codeInlineBg', '--code-inline-bg'],
-    ['error', '--error'],
-    ['focus', '--focus'],
-  ];
-  for (const [key, cssVar] of map) {
-    const value = palette[key];
-    if (value) out.push(`${cssVar}: ${value};`);
-  }
+  if (t.fontFamily) out.push(`${base}-family: ${appendFallback(t.fontFamily, inferFontKindFromBase(base))};`);
+  if (t.fontSize) out.push(`${base}-size: ${t.fontSize};`);
+  if (t.fontWeight != null) out.push(`${base}-weight: ${t.fontWeight};`);
+  if (t.lineHeight != null) out.push(`${base}-line: ${t.lineHeight};`);
+  if (t.letterSpacing) out.push(`${base}-track: ${t.letterSpacing};`);
+  if (t.fontFeature) out.push(`${base}-feature: ${t.fontFeature};`);
+  if (t.fontVariation) out.push(`${base}-variation: ${t.fontVariation};`);
   return out;
+}
+
+/**
+ * Guess the font-fallback bucket for a typography level based on its name.
+ * Headlines & displays -> serif; labels/code -> mono; everything else -> sans.
+ */
+function inferFontKindFromBase(base: string): 'serif' | 'sans' | 'mono' {
+  const name = base.replace(/^--type-/, '');
+  if (/^(headline|display|h[1-6])/i.test(name)) return 'serif';
+  if (/(label|code|mono|caption|overline)/i.test(name)) return 'mono';
+  return 'sans';
+}
+
+/**
+ * Return the first typography.fontFamily defined across the given level
+ * names, in order. Used to derive --font-sans/--font-serif/--font-mono
+ * from the YAML.
+ */
+function pickFontFamily(
+  typography: Record<string, Typography>,
+  candidates: string[]
+): string | null {
+  for (const name of candidates) {
+    const t = typography[name];
+    if (t && t.fontFamily) return t.fontFamily;
+  }
+  // Fallback: any typography level whose name starts with the same category.
+  for (const [lvl, t] of Object.entries(typography)) {
+    const c = candidates[0];
+    if (c && lvl.startsWith(c.split('-')[0]) && t.fontFamily) return t.fontFamily;
+  }
+  return null;
 }
 
 /**
@@ -309,12 +447,11 @@ function appendFallback(family: string, kind: 'serif' | 'sans' | 'mono'): string
       ? 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif'
       : '"JetBrains Mono", "Fira Code", Consolas, Menlo, monospace';
 
-  // If the user's family already contains a comma (it's already a list),
-  // just append the kind's generic fallback.
-  if (trimmed.includes(',')) {
-    return `${trimmed}, ${fallback}`;
-  }
-  return `${trimmed}, ${fallback}`;
+  // Quote family names with spaces so CSS treats them atomically.
+  const normalized = /\s/.test(trimmed) && !/^['"]/.test(trimmed) && !trimmed.includes(',')
+    ? `"${trimmed}"`
+    : trimmed;
+  return `${normalized}, ${fallback}`;
 }
 
 function escapeCssString(str: string): string {

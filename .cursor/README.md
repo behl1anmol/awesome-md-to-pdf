@@ -69,7 +69,7 @@ Playbooks for common tasks. Each calls out owner, reviewer, and relevant rules/s
 Seven dense knowledge packs. Read the relevant one BEFORE editing the corresponding subsystem.
 
 - [markdown-pipeline-knowledge](.cursor/skills/markdown-pipeline-knowledge/SKILL.md) — markdown-it, plugins, fence/image/link renderers, slugify, extractTitle.
-- [design-system-knowledge](.cursor/skills/design-system-knowledge/SKILL.md) — DESIGN.md parsing, PaletteTokens, SYNONYMS, dark synthesis.
+- [design-system-knowledge](.cursor/skills/design-system-knowledge/SKILL.md) — Google DESIGN.md spec parsing, DesignTokens, typography/rounded/spacing/components token groups, {token.path} reference resolution.
 - [template-css-knowledge](.cursor/skills/template-css-knowledge/SKILL.md) — buildHtml, CSS layering, KaTeX rewrite, @page chrome.
 - [pdf-pipeline-knowledge](.cursor/skills/pdf-pipeline-knowledge/SKILL.md) — Puppeteer, readiness dance, mermaid runtime.
 - [cli-repl-knowledge](.cursor/skills/cli-repl-knowledge/SKILL.md) — Commander, Session, slash commands, raw-mode UI, banner.

@@ -29,7 +29,7 @@ Place the bug in exactly one of these buckets so the right owner picks it up:
 | Bucket | Ownership | Likely suspect modules |
 |---|---|---|
 | `parse` | backend-developer | [src/markdown.ts](src/markdown.ts), plugin choice, custom fence renderer |
-| `design` | frontend-developer | [src/design.ts](src/design.ts) parser, `SYNONYMS` rules, [src/designs/*.md](src/designs) |
+| `design` | frontend-developer | [src/design.ts](src/design.ts) YAML parser, [src/designs/*.md](src/designs) fixtures |
 | `render` | frontend-developer | [src/template.ts](src/template.ts), [src/themes/*.css](src/themes) |
 | `pdf` | backend-developer | [src/pdf.ts](src/pdf.ts), [src/mermaid-runtime.ts](src/mermaid-runtime.ts), Puppeteer readiness |
 | `cli` | backend-developer | [src/cli.ts](src/cli.ts), Commander wiring, flag normalization |

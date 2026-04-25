@@ -15,24 +15,22 @@ The rendered PDF's look is driven by three layered sources, in order of preceden
 ## Hard invariants
 
 - Never hardcode a color, font stack, or border-radius inside a component or rule outside `src/themes/`. Everything cascades from CSS custom properties declared in [src/themes/tokens.css](src/themes/tokens.css) and overridden at `:root` / `[data-mode="dark"]`.
-- The single source of truth for palette slots is the `PaletteTokens` interface in [src/design.ts](src/design.ts). When you add a new slot, you MUST update, in this order:
-  1. `PaletteTokens` in `src/design.ts` (add the TS field).
-  2. The synonym rules in `SYNONYMS` (so `parseDesignMd` can detect the token in a DESIGN.md).
-  3. `paletteToCss` map in [src/template.ts](src/template.ts) (TS field -> CSS custom property name).
-  4. The default value for that CSS variable in [src/themes/tokens.css](src/themes/tokens.css).
-  5. Any dark-mode override in [src/themes/tokens.css](src/themes/tokens.css) under `[data-mode="dark"]`.
-  6. If the slot affects diagrams, extend `applyDesignToMermaid` in [src/mermaid-runtime.ts](src/mermaid-runtime.ts).
-- Mermaid diagrams must follow the active palette. Do not fork a second theming pipeline; add new slot -> mermaid mappings inside `applyDesignToMermaid`.
+- The single source of truth for design tokens is the `DesignTokens` interface in [src/design.ts](src/design.ts). awesome-md-to-pdf follows Google's [DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md) -- tokens live in YAML frontmatter and are grouped as `colors`, `typography`, `rounded`, `spacing`, `components`. When you add a new token consumer, you MUST update, in this order:
+  1. The emitter in [src/template.ts](src/template.ts) `buildDesignOverride` (add the CSS variable alias or consume the spec's raw `--color-<key>` / `--type-<level>-*` / `--rounded-<key>` / `--spacing-<key>` / `--component-<name>-*`).
+  2. The default value for that CSS variable in [src/themes/tokens.css](src/themes/tokens.css).
+  3. The selector that consumes it in [src/themes/base.css](src/themes/base.css).
+  4. If the token affects diagrams, extend `applyDesignToMermaid` in [src/mermaid-runtime.ts](src/mermaid-runtime.ts).
+- Mermaid diagrams must follow the active palette. Do not fork a second theming pipeline; add new color -> mermaid mappings inside `applyDesignToMermaid`.
 
 ## Dark mode
 
-- Dark tokens are either parsed explicitly (a `## Dark palette` section in DESIGN.md) or synthesized via the inversion helpers in [src/design.ts](src/design.ts).
-- Do not introduce a second dark-mode path. Extend `extractDarkPalette` instead.
+- Dark mode flips the legacy palette vars in [src/themes/tokens.css](src/themes/tokens.css) `[data-mode="dark"]`. The DESIGN.md spec itself is mode-agnostic; if a design wants explicit dark tokens, they author a separate DESIGN.md and pass it via `/design` in dark mode.
 
-## Font tokens
+## Typography
 
-- `FontTokens` has only `serif`, `sans`, `mono`. If a design names a custom family that isn't installed, `appendFallback` in [src/template.ts](src/template.ts) adds a reliable cascade (Georgia / system-ui / JetBrains Mono). Do not remove the fallback; it's the reason the Claude baseline still renders correctly when a design references private fonts.
+- Every typography entry emits `--type-<level>-family/size/weight/line/track`. [src/themes/base.css](src/themes/base.css) reads `h1`...`h6`, `body-md`, `body-lg`, `body-sm`, `code`, and `label-md`. Author-supplied alternate names (e.g. `headline-xl`, `display-lg`) emit vars but need a custom selector to bind.
+- `appendFallback` in [src/template.ts](src/template.ts) adds a reliable fallback cascade (Georgia / system-ui / JetBrains Mono) for author-supplied font families. Do not remove it; it's what lets the Claude baseline still render when a design references private fonts.
 
 ## Accent override
 
-- `--accent <hex>` is intentionally a narrow shortcut: it only rewrites `--brand` and `--brand-soft`. Do not widen its scope. Users who want to retheme fully should pass `--design`.
+- `--accent <hex>` is intentionally a narrow shortcut: it only rewrites `--brand` / `--brand-soft`. Do not widen its scope. Users who want to retheme fully should pass `--design`.
