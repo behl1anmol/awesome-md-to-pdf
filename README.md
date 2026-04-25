@@ -11,13 +11,13 @@
 </p>
 
 <p align="center">
-  <a href="https://<owner>.github.io/awesome-md-to-pdf"><strong>Documentation</strong></a> &nbsp;&middot;&nbsp;
+  <a href="https://behl1anmol.github.io/awesome-md-to-pdf"><strong>Documentation</strong></a> &nbsp;&middot;&nbsp;
   <a href="https://www.npmjs.com/package/awesome-md-to-pdf"><strong>npm</strong></a>
 </p>
 
 ## Features
 
-- **Dynamic design pipeline** — drop in any spec-compliant `DESIGN.md` (see [the spec](https://github.com/google/design.md)) and the PDF re-themes itself: colors, typography, rounded, spacing, and components all flow from the YAML frontmatter. The Claude baseline stays as the default when no `--design` is passed.
+- **Dynamic design pipeline** — drop in any spec-compliant `DESIGN.md` (see [the spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)) and the PDF re-themes itself: colors, typography, rounded, spacing, and components all flow from the YAML frontmatter. The Claude baseline stays as the default when no `--design` is passed.
 - **Interactive chat mode** — run `awesome-md-to-pdf` with no args and you land in a slash-command REPL (`/help`, `/convert`, `/design`, `/mode`, ...) with a live progress bar for every conversion.
 - **Fancy 3D welcome banner** — gradient ANSI Shadow `MD-TO-PDF` wordmark with a letter-spaced `A W E S O M E` eyebrow and an isometric 4-point starburst icon, all colored with 24-bit true-color.
 - **Editorial base design** — warm Parchment canvas, serif headlines (weight 500), sans body at 1.60 line-height, terracotta brand accent, ring-based depth. Every gray is warm-toned.
@@ -46,7 +46,7 @@ Either install exposes two identical binaries: `awesome-md-to-pdf` (canonical) a
 ### From source
 
 ```bash
-git clone https://github.com/<owner>/awesome-md-to-pdf.git
+git clone https://github.com/behl1anmol/awesome-md-to-pdf.git
 cd awesome-md-to-pdf
 npm install      # installs runtime + TypeScript toolchain
 npm run build    # compiles src/*.ts -> dist/*.js and copies CSS + design assets
@@ -165,7 +165,7 @@ awesome-md-to-pdf docs --mode light -w
 ## Using a DESIGN.md
 
 awesome-md-to-pdf parses any `DESIGN.md` that follows Google's
-[DESIGN.md spec](https://github.com/google/design.md) -- a YAML frontmatter
+[DESIGN.md spec](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md) -- a YAML frontmatter
 block declaring `colors`, `typography`, `rounded`, `spacing`, and
 `components`, followed by human-readable prose sections. Bundled fixtures
 (`samples/design-fixtures/apple.md`, `figma.md`, `linear.md`, `nike.md`,
