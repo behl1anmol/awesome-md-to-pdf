@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or usage help
+    url: https://github.com/behl1anmol/awesome-md-to-pdf#readme
+    about: Check the README first, then open an issue if you found a bug.
