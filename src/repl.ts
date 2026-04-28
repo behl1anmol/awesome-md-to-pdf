@@ -413,8 +413,10 @@ class ReplUi {
   }
 
   private redraw(matches: CommandMeta[]): void {
-    this.drawGhost(matches);
+    // Draw dropdown first because it may call readline _refreshLine(), which
+    // erases any ghost hint currently painted after the input buffer.
     this.drawDropdown(matches);
+    this.drawGhost(matches);
   }
 
   // --- Ghost hint --------------------------------------------------------
