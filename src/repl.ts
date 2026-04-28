@@ -483,6 +483,7 @@ class ReplUi {
     // Always clear first, then paint.
     this.clearDropdown();
     if (matches.length === 0) return;
+    this.refreshReadlineLine();
 
     const inputCol = this.currentInputCol();
 
@@ -533,15 +534,30 @@ class ReplUi {
 
   private clearDropdown(): void {
     if (this.suggestionsDrawn === 0) return;
+    this.refreshReadlineLine();
     const inputCol = this.currentInputCol();
-    // Step one row below the prompt and wipe downward.
-    readline.moveCursor(process.stdout, -inputCol, 1);
+    // Step to column 0 on the prompt row, clear each drawn suggestion row
+    // explicitly, then return to the live input column.
     readline.cursorTo(process.stdout, 0);
-    readline.clearScreenDown(process.stdout);
-    // Back up to the original prompt row at the input column.
-    readline.moveCursor(process.stdout, 0, -1);
+    for (let i = 0; i < this.suggestionsDrawn; i++) {
+      readline.moveCursor(process.stdout, 0, 1);
+      readline.cursorTo(process.stdout, 0);
+      readline.clearLine(process.stdout, 0);
+    }
+    readline.moveCursor(process.stdout, 0, -this.suggestionsDrawn);
     readline.cursorTo(process.stdout, inputCol);
     this.suggestionsDrawn = 0;
+  }
+
+  /**
+   * Ask readline to redraw the canonical prompt+buffer line so all subsequent
+   * cursor math starts from the real prompt anchor.
+   */
+  private refreshReadlineLine(): void {
+    const rl = this.rl as unknown as { _refreshLine?: () => void };
+    if (typeof rl._refreshLine === 'function') {
+      rl._refreshLine();
+    }
   }
 
   private applyCompletion(cmd: CommandMeta): void {
@@ -618,8 +634,59 @@ function renderDropdownRow(m: CommandMeta, selected: boolean): string {
 
 /** Strip ANSI escape sequences to measure the terminal-visible width. */
 function visibleLen(s: string): number {
+  // Strip ANSI CSI/OSC sequences before measuring visible cell width.
+  return unicodeCellWidth(stripAnsi(s));
+}
+
+function stripAnsi(s: string): string {
+  // CSI: ESC [ ... command
   // eslint-disable-next-line no-control-regex
-  return s.replace(/\x1b\[[0-9;]*m/g, '').length;
+  const noCsi = s.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '');
+  // OSC: ESC ] ... BEL or ESC \
+  // eslint-disable-next-line no-control-regex
+  return noCsi.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '');
+}
+
+function unicodeCellWidth(input: string): number {
+  let width = 0;
+  for (const ch of input) {
+    width += codePointCellWidth(ch.codePointAt(0) ?? 0);
+  }
+  return width;
+}
+
+function codePointCellWidth(cp: number): number {
+  // C0/C1 controls and DEL.
+  if (cp === 0 || cp < 32 || (cp >= 0x7f && cp < 0xa0)) return 0;
+  // Combining marks.
+  if (
+    (cp >= 0x300 && cp <= 0x36f) ||
+    (cp >= 0x1ab0 && cp <= 0x1aff) ||
+    (cp >= 0x1dc0 && cp <= 0x1dff) ||
+    (cp >= 0x20d0 && cp <= 0x20ff) ||
+    (cp >= 0xfe20 && cp <= 0xfe2f)
+  ) {
+    return 0;
+  }
+  // Wide/full-width ranges (common terminal behavior).
+  if (
+    (cp >= 0x1100 && cp <= 0x115f) ||
+    cp === 0x2329 ||
+    cp === 0x232a ||
+    (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) ||
+    (cp >= 0xac00 && cp <= 0xd7a3) ||
+    (cp >= 0xf900 && cp <= 0xfaff) ||
+    (cp >= 0xfe10 && cp <= 0xfe19) ||
+    (cp >= 0xfe30 && cp <= 0xfe6f) ||
+    (cp >= 0xff00 && cp <= 0xff60) ||
+    (cp >= 0xffe0 && cp <= 0xffe6) ||
+    (cp >= 0x1f300 && cp <= 0x1f64f) ||
+    (cp >= 0x1f900 && cp <= 0x1f9ff) ||
+    (cp >= 0x20000 && cp <= 0x3fffd)
+  ) {
+    return 2;
+  }
+  return 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -675,6 +742,12 @@ function printWelcome(): void {
  * the prompt are left behind as visual debris.
  */
 function renderYouBubble(line: string, prompt: string): void {
+  // Normalize terminal state aggressively before drawing the bubble so
+  // stale suggestion text cannot survive to the right of the chat turn.
+  readline.cursorTo(process.stdout, 0);
+  readline.clearLine(process.stdout, 0);
+  readline.clearScreenDown(process.stdout);
+
   const cols = process.stdout.columns || 80;
   const totalLen = visibleLen(prompt) + line.length;
   const rows = Math.max(1, Math.ceil(totalLen / cols));
