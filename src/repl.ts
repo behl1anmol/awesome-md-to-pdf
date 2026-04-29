@@ -33,6 +33,7 @@ import type { RenderMode } from './prompt';
 import { parseDesignMd, describeTokens, type DesignTokens } from './design';
 import * as logger from './logger';
 import { tc } from './tty-colors';
+import { loadSessionSettings, saveSessionSetting } from './db';
 
 // ---------------------------------------------------------------------------
 // Session state
@@ -58,6 +59,17 @@ interface Session {
 }
 
 function defaultSession(overrides: Partial<Session> = {}): Session {
+  const loadedOverrides = loadSessionSettings();
+
+  // We only pull specific keys we want to persist between sessions.
+  const persistedKeys = ['toc', 'cover', 'pageNumbers', 'singleFile', 'recursive'];
+  const sessionOverrides: any = {};
+  for (const k of persistedKeys) {
+    if (k in loadedOverrides && typeof loadedOverrides[k] === 'boolean') {
+      sessionOverrides[k] = loadedOverrides[k];
+    }
+  }
+
   return {
     inputDir: process.cwd(),
     outputDir: path.resolve(process.cwd(), 'pdf'),
@@ -73,6 +85,7 @@ function defaultSession(overrides: Partial<Session> = {}): Session {
     accent: null,
     designLight: null,
     designDark: null,
+    ...sessionOverrides,
     ...overrides,
   };
 }
@@ -1093,6 +1106,7 @@ function cmdToggle(
         return;
       }
     }
+    saveSessionSetting(key, session[key], 'boolean');
     logger.success(`${key}: ${session[key] ? 'on' : 'off'}`);
   };
 }
