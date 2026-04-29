@@ -29,6 +29,18 @@ export function getDb(): Database.Database | null {
     dbInstance = new Database(dbPath);
     dbInstance.pragma('journal_mode = WAL');
 
+    const schemaQuery = dbInstance.prepare("PRAGMA table_info(session_settings)").all() as any[];
+
+    // If table exists but schema is incorrect (e.g. missing columns), drop it.
+    if (schemaQuery.length > 0) {
+      const colNames = schemaQuery.map((c) => c.name);
+      const expected = ['key', 'value', 'value_type', 'updated_at'];
+      const hasAll = expected.every(c => colNames.includes(c));
+      if (!hasAll) {
+        dbInstance.exec("DROP TABLE session_settings;");
+      }
+    }
+
     dbInstance.exec(`
       CREATE TABLE IF NOT EXISTS session_settings (
         key TEXT PRIMARY KEY,
@@ -37,6 +49,29 @@ export function getDb(): Database.Database | null {
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
     `);
+
+    // Initialize defaults on first use / if missing.
+    const defaults = [
+      { key: 'toc', value: 'false', type: 'boolean' },
+      { key: 'cover', value: 'false', type: 'boolean' },
+      { key: 'pageNumbers', value: 'false', type: 'boolean' },
+      { key: 'singleFile', value: 'false', type: 'boolean' },
+      { key: 'recursive', value: 'false', type: 'boolean' }
+    ];
+
+    const insertStmt = dbInstance.prepare(`
+      INSERT OR IGNORE INTO session_settings (key, value, value_type)
+      VALUES (?, ?, ?)
+    `);
+
+    const insertMany = dbInstance.transaction((settings: typeof defaults) => {
+      for (const setting of settings) {
+        insertStmt.run(setting.key, setting.value, setting.type);
+      }
+    });
+
+    insertMany(defaults);
+
     return dbInstance;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

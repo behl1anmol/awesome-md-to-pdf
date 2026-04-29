@@ -59,19 +59,6 @@ interface Session {
 }
 
 function defaultSession(overrides: Partial<Session> = {}): Session {
-  const loadedOverrides = loadSessionSettings();
-
-  // We only pull specific keys we want to persist between sessions.
-  const persistedKeys = ['toc', 'cover', 'pageNumbers', 'singleFile', 'recursive'];
-  const sessionOverrides: any = {};
-  for (const k of persistedKeys) {
-    if (k in loadedOverrides && typeof loadedOverrides[k] === 'boolean') {
-      // Do not overwrite an explicitly true CLI override with a persisted false
-      if (overrides[k as keyof Session] === true) continue;
-      sessionOverrides[k] = loadedOverrides[k];
-    }
-  }
-
   return {
     inputDir: process.cwd(),
     outputDir: path.resolve(process.cwd(), 'pdf'),
@@ -88,7 +75,6 @@ function defaultSession(overrides: Partial<Session> = {}): Session {
     designLight: null,
     designDark: null,
     ...overrides,
-    ...sessionOverrides,
   };
 }
 

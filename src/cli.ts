@@ -102,19 +102,18 @@ export async function run(argv: string[]): Promise<void> {
     .version(pkg.version)
     .argument('[inputDir]', 'Directory containing .md files to convert. Omit to open the chat REPL.')
     .option('-o, --output <dir>', 'Output directory', 'pdf')
-    .option('-r, --recursive', 'Recurse into subdirectories', false)
-    .option('-s, --single-file', 'Merge all .md files into a single PDF', false)
+    .option('-r, --recursive', 'Recurse into subdirectories')
+    .option('-s, --single-file', 'Merge all .md files into a single PDF')
     .option('-m, --mode <mode>', 'Render mode: light | dark')
     .option('--accent <hex>', 'Override the brand accent (hex)')
     .option('--design-light <path>', 'Path to the light-mode DESIGN.md (github.com/google-labs-code/design.md)')
     .option('--design-dark <path>', 'Path to the dark-mode DESIGN.md (github.com/google-labs-code/design.md)')
     .option('-f, --format <fmt>', 'Page format: A4 | Letter | Legal', 'A4')
-    .option('--toc', 'Auto-generate a table of contents', false)
-    .option('--cover', 'Generate a cover page', false)
+    .option('--toc', 'Auto-generate a table of contents')
+    .option('--cover', 'Generate a cover page')
     .option(
       '--page-numbers',
-      'Show "page X / Y" in a thin band at the bottom (breaks full-bleed)',
-      false
+      'Show "page X / Y" in a thin band at the bottom (breaks full-bleed)'
     )
     .option('--header <text>', 'Custom header text ({file}, {title}, {date}) -- adds a thin band at top')
     .option('--footer <text>', 'Custom footer text -- adds a thin band at bottom')
@@ -141,6 +140,19 @@ export async function run(argv: string[]): Promise<void> {
   const opts = program.opts<RawCliOptions>();
   const inputDir = program.args[0];
 
+  const { saveSessionSetting, loadSessionSettings } = await import('./db');
+
+  // Handle explicit CLI toggles by persisting them to DB immediately.
+  // Because they don't have default `false` in commander anymore, they are undefined if absent.
+  if (opts.toc === true) saveSessionSetting('toc', true, 'boolean');
+  if (opts.cover === true) saveSessionSetting('cover', true, 'boolean');
+  if (opts.recursive === true) saveSessionSetting('recursive', true, 'boolean');
+  if (opts.pageNumbers === true) saveSessionSetting('pageNumbers', true, 'boolean');
+  if (opts.singleFile === true) saveSessionSetting('singleFile', true, 'boolean');
+
+  const sessionDB = loadSessionSettings();
+  const getFlag = (k: string) => Boolean(sessionDB[k]);
+
   // ---- Routing ----
   // No positional arg -> chat REPL (with banner).
   if (!inputDir) {
@@ -158,11 +170,11 @@ export async function run(argv: string[]): Promise<void> {
         format,
         designLight,
         designDark,
-        toc: Boolean(opts.toc),
-        cover: Boolean(opts.cover),
-        recursive: Boolean(opts.recursive),
-        pageNumbers: Boolean(opts.pageNumbers),
-        singleFile: Boolean(opts.singleFile),
+        toc: getFlag('toc'),
+        cover: getFlag('cover'),
+        recursive: getFlag('recursive'),
+        pageNumbers: getFlag('pageNumbers'),
+        singleFile: getFlag('singleFile'),
         showLinkUrls: Boolean(opts.showLinkUrls),
         accent: opts.accent ? parseAccent(opts.accent) : null,
       },
@@ -208,14 +220,14 @@ export async function run(argv: string[]): Promise<void> {
 
   const runOptions: ConvertOptions = {
     inputDir,
-    outputDir: opts.output,
-    recursive: Boolean(opts.recursive),
-    singleFile: Boolean(opts.singleFile),
+    outputDir: opts.output ?? 'pdf',
+    recursive: getFlag('recursive'),
+    singleFile: getFlag('singleFile'),
     mode,
     format,
-    toc: Boolean(opts.toc),
-    cover: Boolean(opts.cover),
-    pageNumbers: Boolean(opts.pageNumbers),
+    toc: getFlag('toc'),
+    cover: getFlag('cover'),
+    pageNumbers: getFlag('pageNumbers'),
     headerText: opts.header,
     footerText: opts.footer,
     showLinkUrls: Boolean(opts.showLinkUrls),
