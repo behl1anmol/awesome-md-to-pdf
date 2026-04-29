@@ -33,6 +33,7 @@ import type { RenderMode } from './prompt';
 import { parseDesignMd, describeTokens, type DesignTokens } from './design';
 import * as logger from './logger';
 import { tc } from './tty-colors';
+import { loadSessionSettings, saveSessionSetting } from './db';
 
 // ---------------------------------------------------------------------------
 // Session state
@@ -1093,6 +1094,7 @@ function cmdToggle(
         return;
       }
     }
+    saveSessionSetting(key, session[key], 'boolean');
     logger.success(`${key}: ${session[key] ? 'on' : 'off'}`);
   };
 }
