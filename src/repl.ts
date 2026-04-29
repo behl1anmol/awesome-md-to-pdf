@@ -66,6 +66,8 @@ function defaultSession(overrides: Partial<Session> = {}): Session {
   const sessionOverrides: any = {};
   for (const k of persistedKeys) {
     if (k in loadedOverrides && typeof loadedOverrides[k] === 'boolean') {
+      // Do not overwrite an explicitly true CLI override with a persisted false
+      if (overrides[k as keyof Session] === true) continue;
       sessionOverrides[k] = loadedOverrides[k];
     }
   }
@@ -85,8 +87,8 @@ function defaultSession(overrides: Partial<Session> = {}): Session {
     accent: null,
     designLight: null,
     designDark: null,
-    ...sessionOverrides,
     ...overrides,
+    ...sessionOverrides,
   };
 }
 
