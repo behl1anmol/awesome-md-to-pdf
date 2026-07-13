@@ -83,7 +83,7 @@
     "@types/cli-progress": "^3.11.6",
     "@types/katex": "^0.16.8",
     "@types/markdown-it": "^13.0.9",
-    "@types/node": "^25.6.0",
+    "@types/node": "^26.1.1",
     "@types/prompts": "^2.4.9",
     "typescript": "^6.0.3"
   }
